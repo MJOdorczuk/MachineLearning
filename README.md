@@ -2,5 +2,7 @@
 
 ## Members
 Michal Jan Odorczuk
+
 Tom-Ruben Traavik Kvalvaag
+
 William Ho
