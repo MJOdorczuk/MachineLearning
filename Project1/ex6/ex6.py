@@ -54,8 +54,8 @@ def Lasso(x,y, lamb):
     lasso = linear_model.Lasso(
         fit_intercept = False,
         alpha = lamb,
-        max_iter = 500,
-        tol = 0.01,
+        max_iter = 1000,
+        tol = 0.001,
         copy_X = True,
         )
     lasso.fit(x,y)
@@ -63,7 +63,7 @@ def Lasso(x,y, lamb):
 
 ##### Exercise 6 specific code:
 
-def load_data(display: bool = False) -> tuple[np.ndarray, ...]:
+def load_data(display: bool = False, step: int = 1) -> tuple[np.ndarray, ...]:
     """Load terrain dataset from image and create x and y coordinates.
 
     Returns
@@ -87,14 +87,19 @@ def load_data(display: bool = False) -> tuple[np.ndarray, ...]:
     y = np.arange(data.shape[1])
     x, y = np.meshgrid(x, y)
 
-    return x, y, data
+    return x[::step, ::step], y[::step, ::step], data[::step, ::step]
 
 
-def ex6(complexity: int = 10, n_folds = 10) -> dict[str, Any]:
+def ex6(
+    complexity: int = 10,
+    n_folds = 10,
+    step: int = 1,
+    n_lambdas: int = 40,
+) -> dict[str, Any]:
     """Evaluate what model is best for a given complexity and number of folds.
     """
     # Load terrain data
-    x, y, z = load_data(display=False)
+    x, y, z = load_data(display=False, step=step)
 
     # Create design matrix
     X = create_X(x, y, n=complexity)
@@ -127,7 +132,7 @@ def ex6(complexity: int = 10, n_folds = 10) -> dict[str, Any]:
         kfold = KFold(n_splits = n_folds)
 
         if reg.__name__ != "least_square":
-            lambda_values = np.logspace(-4, 2, 10)
+            lambda_values = np.logspace(-4, 4, n_lambdas)
 
             # Grid search for best lambda for Ridge and Lasso
             for l in lambda_values:
@@ -164,7 +169,7 @@ def ex6(complexity: int = 10, n_folds = 10) -> dict[str, Any]:
             "best_mse": best_mse,
             "best_lambda": best_lambda,
         }
-        print(json.dumps(model_data, indent=4))
+        #print(json.dumps(model_data, indent=4))
 
     print("\n\nTesting done. \nStats:\n")
     print(json.dumps(model_data, indent=4))
@@ -176,11 +181,10 @@ if __name__ == "__main__":
     import pandas as pd
 
     data_pr_complexity = {}
-    for c in range(5, 7):
-        data_pr_complexity[c] = ex6(complexity=c, n_folds=5)
+    for c in range(1, 15+1):
+        print(f"Calculating for complexity {c}")
+        data_pr_complexity[c] = ex6(complexity=c, n_folds=10, step=5, n_lambdas=50)
     print(json.dumps(data_pr_complexity, indent=4))
 
     df = pd.concat({k: pd.DataFrame(v) for k, v in data_pr_complexity.items()})
     print(df)
-    df.plot()
-    plt.show()
