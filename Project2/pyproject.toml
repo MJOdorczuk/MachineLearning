@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.isort]
+line_length = 80
+multi_line_output = 3
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q -v --ignore=ci --import-mode=importlib"
+testpaths = ["tests"]
+log_cli = "False"
+log_level = "INFO"
+norecursedirs = [".git", ".env", "dist", "build"]
+python_files = ["test_*.py", "*_test.py", "tests.py"]
+
+[tool.coverage.run]
+branch = true
+source = ["cs-net"]
+omit = [
+  "*/__main__.py",
+  "*/setup.py",
+  "*/.venv*/*",
+  "*/venv*/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
