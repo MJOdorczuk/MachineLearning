@@ -13,11 +13,24 @@ will now run configured linters and formatters each time you make a commit.
 
 
 ## Setup using virtual environment
-```sh
+
+```console
 # Create a virtual environment
 python -m venv venv
 # Activate it
-venv\Scripts\activate.bat # or on linux: . venv/bin/activate
+venv\Scripts\activate.bat # or on linux/mac: . venv/bin/activate
 # Install the package and dependencies as an editable package in the venv
 pip install -e .[dev,testing]
+```
+
+## Running tests and check coverage
+
+To run the `csnet` tests in `tests` folder we use `pytest` and `coverage`,
+who is installed, if setup is done as described above.
+
+```console
+# to run tests:
+(.venv)$ pytest
+# to run coverage
+(.venv)$ coverage run -m pytest && coverage report -m
 ```

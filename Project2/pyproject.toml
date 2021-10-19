@@ -17,7 +17,7 @@ python_files = ["test_*.py", "*_test.py", "tests.py"]
 
 [tool.coverage.run]
 branch = true
-source = ["cs-net"]
+source = ["csnet"]
 omit = [
   "*/__main__.py",
   "*/setup.py",
