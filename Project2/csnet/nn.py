@@ -24,46 +24,45 @@ def initSGD(w,b,delta,a,eta):
 
 
 class layer:
-    def __init__(self, activ: Callable[[float],float],size: int,outsize: int, opt = initSGD) -> None:
-        self.f = np.vectorize(activ)
-        self.df = np.vectorize(grad(activ))
-        self.weights = np.zeros([size,outsize])
-        self.bias = np.zeros([size])
-        self.size = size
-        self.outsize = outsize
+    def __init__(self, activ: Callable[[float],float],input_size: int,output_size: int, opt = initSGD) -> None:
+        self.activation = np.vectorize(activ)
+        self.d_activation = np.vectorize(grad(activ))
+        self.weights = np.zeros([input_size,output_size])
+        self.bias = np.zeros([input_size])
+        self.input_size = input_size
+        self.outsize = output_size
         self.opt = opt
 
-    def raw(self, input: np.ndarray) -> np.ndarray:
+    def preactivation(self, input: np.ndarray) -> np.ndarray:
         return input.dot(self.weights) + self.bias
 
     def forward(self, input: np.ndarray) -> np.ndarray:
-        return self.f(self.raw(input))
+        return self.activation(self.preactivation(input))
 
     '''delta_j^l=sum_k delta_k^{l+1} w_{kj}^{l+1}f'(z_j^l)'''
-    def backerror(self, a: np.ndarray, nxterr: np.ndarray) -> np.ndarray:
-        z = self.raw(a)
-        return np.array([np.sum(nxterr[k]*self.weights[j,k]*self.df(z[j])
-            for k in range(self.outsize)) for j in range(self.size)])
+    def backerror(self, x: np.ndarray, nxterr: np.ndarray) -> np.ndarray:
+        z = self.preactivation(x)
+        return self.d_activation(z) * nxterr.dot(self.weights)
 
-    def improve(self, eta: float, delta: np.ndarray, a: np.ndarray):
+    def update_weights(self, eta: float, delta: np.ndarray, a: np.ndarray):
         self.weights, self.bias, self.opt = self.opt(self.weights, self.bias, delta, a, eta)
 
 class nn:
     def __init__(self, layers: List[layer], output_activation: Callable[[float],float], C: Callable[[np.ndarray, np.ndarray],float],opt) -> None:
         self.layers = layers
-        self.f = np.vectorize(output_activation)
-        self.df = np.vectorize(grad(output_activation))
+        self.activation = np.vectorize(output_activation)
+        self.d_activation = np.vectorize(grad(output_activation))
         self.opt = opt
         self.C = C # Right now it is not necessary, but may be useful in the future
 
-    def raw(self, x: np.ndarray) -> np.ndarray:
+    def preactivation(self, x: np.ndarray) -> np.ndarray:
         y = x
         for layer in self.layers:
             y = layer.forward(x)
         return y
 
     def forward(self, x: np.ndarray) -> np.ndarray:
-        return self.f(self.raw(x))
+        return self.activation(self.preactivation(x))
 
     def stepforward(self, x: np.ndarray) -> List[np.ndarray]:
         a = [x]
@@ -72,19 +71,19 @@ class nn:
         return a
 
     def back(self, x: np.ndarray, y: np.ndarray, eta: float) -> None:
-        z = self.raw(x)
+        z = self.preactivation(x)
         a = self.stepforward(x)
         '''
         The cost function can depend on both y and y_tilde separately and not only on their difference
         thence we have to compute grad for each iteration :(
         '''
         dC = grad(lambda y_tilde: self.C(y,y_tilde))
-        delta = self.df(z)*dC(a[-1])
+        delta = self.d_activation(z)*dC(a[-1])
         '''L-2,L-3,...,1'''
         for l in np.arange(len(self.layers)-2,0,-1):
             layer = self.layers[l]
             '''delta_j^l=sum_k delta_k^{l+1} w_{kj}^{l+1}f'(z_j^l)'''
             ndelta = layer.backerror(a[l],delta)
-            layer.improve(eta, delta, a[l])
+            layer.update_weights(eta, delta, a[l])
             delta = ndelta
-        self.layers[0].improve(eta, delta, a[0])
+        self.layers[0].update_weights(eta, delta, a[0])
