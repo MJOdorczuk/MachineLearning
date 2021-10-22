@@ -49,13 +49,12 @@ class layer:
         self.weights, self.bias, self.opt = self.opt(self.weights, self.bias, delta, a, eta)
 
 class nn:
-    def __init__(self, layers: List[layer], output_activation: Callable[[float],float], C: Callable[[np.ndarray],float],opt) -> None:
+    def __init__(self, layers: List[layer], output_activation: Callable[[float],float], C: Callable[[np.ndarray, np.ndarray],float],opt) -> None:
         self.layers = layers
         self.f = np.vectorize(output_activation)
         self.df = np.vectorize(grad(output_activation))
         self.opt = opt
         self.C = C # Right now it is not necessary, but may be useful in the future
-        self.dC = grad(C)
 
     def raw(self, x: np.ndarray) -> np.ndarray:
         y = x
@@ -75,7 +74,12 @@ class nn:
     def back(self, x: np.ndarray, y: np.ndarray, eta: float) -> None:
         z = self.raw(x)
         a = self.stepforward(x)
-        delta = self.df(z)*self.dC(a[-1])
+        '''
+        The cost function can depend on both y and y_tilde separately and not only on their difference
+        thence we have to compute grad for each iteration :(
+        '''
+        dC = grad(lambda y_tilde: self.C(y,y_tilde))
+        delta = self.df(z)*dC(a[-1])
         '''L-2,L-3,...,1'''
         for l in np.arange(len(self.layers)-2,0,-1):
             layer = self.layers[l]
