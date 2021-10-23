@@ -24,11 +24,11 @@ def initSGD(w,b,delta,a,eta):
 
 
 class layer:
-    def __init__(self, activ: Callable[[float],float],input_size: int,output_size: int, opt = initSGD) -> None:
+    def __init__(self, activ: Callable[[float],float], input_size: int, output_size: int, opt = initSGD) -> None:
         self.activation = np.vectorize(activ)
         self.d_activation = np.vectorize(grad(activ))
-        self.weights = np.zeros([input_size,output_size])
-        self.bias = np.zeros([input_size])
+        self.weights = np.random.normal((input_size,output_size))
+        self.bias = np.random.normal((input_size))
         self.input_size = input_size
         self.outsize = output_size
         self.opt = opt
@@ -48,12 +48,12 @@ class layer:
         self.weights, self.bias, self.opt = self.opt(self.weights, self.bias, delta, a, eta)
 
 class nn:
-    def __init__(self, layers: List[layer], output_activation: Callable[[float],float], C: Callable[[np.ndarray, np.ndarray],float],opt) -> None:
+    def __init__(self, layers: List[layer], output_activation: Callable[[float],float], cost: Callable[[np.ndarray, np.ndarray],float],opt) -> None:
         self.layers = layers
         self.activation = np.vectorize(output_activation)
         self.d_activation = np.vectorize(grad(output_activation))
         self.opt = opt
-        self.C = C # Right now it is not necessary, but may be useful in the future
+        self.cost = cost # Right now it is not necessary, but may be useful in the future
 
     def preactivation(self, x: np.ndarray) -> np.ndarray:
         y = x
@@ -77,7 +77,7 @@ class nn:
         The cost function can depend on both y and y_tilde separately and not only on their difference
         thence we have to compute grad for each iteration :(
         '''
-        dC = grad(lambda y_tilde: self.C(y,y_tilde))
+        dC = grad(lambda y_tilde: self.cost(y,y_tilde))
         delta = self.d_activation(z)*dC(a[-1])
         '''L-2,L-3,...,1'''
         for l in np.arange(len(self.layers)-2,0,-1):
