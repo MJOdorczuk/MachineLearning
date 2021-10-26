@@ -6,14 +6,14 @@ from typing import Callable, Generator
 import autograd.numpy as np
 from autograd import grad
 
-#from csnet.utils import cost_mse
+from csnet.utils import cost_mse
 
 
 def sgd(
     x: np.ndarray,
     y: np.ndarray,
     weights: np.ndarray,
-    cost_function: Callable,
+    cost_function: Callable = cost_mse,
     lamb: np.ndarray | None = None,
     batch_size: int = 2,
     epochs: int = 50,
@@ -52,7 +52,7 @@ def sgd(
     """
     if x.shape[0] != y.shape[0]:
         raise AttributeError(
-            f"Wrong shape of x and y. Shape {x.shape} != {y.shape}"
+            f"Wrong shape of x and y. Shape {x.shape=} != {y.shape=}"
         )
     if momentum and alpha >= 1:
         raise AttributeError("alpha must be less the 1")
@@ -96,7 +96,7 @@ def sgd(
         prev_cost = cost
 
     if not silent:
-        print(f"{best_cost}")
+        print(f"{best_cost=}")
 
     assert best_weights is not None
     return best_weights
