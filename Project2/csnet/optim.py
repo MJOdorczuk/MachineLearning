@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from typing import Generator
 
-import numpy as np
+import autograd.numpy as np
+from autograd import grad
+
+from csnet.utils import cost_mse
 
 
 class SGD():
@@ -95,27 +98,31 @@ class SGD():
 def _momentum_sgd_step(
     x: np.ndarray,
     y: np.ndarray,
-    theta: np.ndarray,
+    weights: np.ndarray,
     lr: float,
     alpha: float,
     m: float,
+    grad_cost_function: Callable,
+    lamb: np.ndarray | None = None,
 ) -> np.ndarray:
     """One optimization step using momentum SGT."""
-    gradient = 2 * x.T @ ((x @ theta) - y)
+    gradient = grad_cost_function(weights, x, lamb, y)
     m = alpha * m + (1 - alpha) * gradient
-    theta = theta - lr * m
-    return theta, m
+    weights = weights - lr * m
+    return weights, m
 
 
 def _sgd_step(
     x: np.ndarray,
     y: np.ndarray,
-    theta: np.ndarray,
+    weights: np.ndarray,
     lr: float,
+    grad_cost_function: Callable,
+    lamb: np.ndarray | None = None,
 ) -> np.ndarray:
     """One optimization step using SGT."""
-    gradient = 2 * x.T @ ((x @ theta) - y)
-    return theta - lr * gradient
+    gradient = grad_cost_function(weights, x, lamb, y)
+    return weights - lr * gradient
 
 
 def _random_mini_batch_generator(
