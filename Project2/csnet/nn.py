@@ -7,7 +7,7 @@ from autograd import grad
 '''Example, to be removed when real optimizer developed.
 some_counter is just an example argument showing, how the evolving of the optimizer should proceed'''
 def SGD(w,b,delta,a,eta,some_counter):
-    return (w-np.dot(delta.reshape(-1,1),a.reshape(1,-1)).T*eta,
+    return (w-np.dot(a.reshape(-1,1),delta.reshape(1,-1))*eta,
         b-delta*eta,
         lambda w,b,delta,a,eta: SGD(w,b,delta,a,eta,some_counter+1))
 
@@ -30,8 +30,8 @@ class layer:
     def __init__(self, activ: Callable[[float],float], input_size: int, output_size: int, opt = initSGD) -> None:
         self.activation = activ
         self.d_activation = np.vectorize(grad(activ))
-        self.weights = np.random.normal(size=(input_size,output_size))
-        self.bias = np.random.normal(size=(output_size))*0.001
+        self.weights = np.random.normal(size=(input_size,output_size))*0.0
+        self.bias = np.random.normal(size=(output_size))*0.0
         self.input_size = input_size
         self.outsize = output_size
         self.opt = opt
@@ -43,8 +43,8 @@ class layer:
         return self.activation(self.preactivation(input))
 
     '''delta_j^l=sum_k delta_k^{l+1} w_{kj}^{l+1}f'(z_j^l)'''
-    def backerror(self, z: np.ndarray, nxterr: np.ndarray) -> np.ndarray:
-        return self.d_activation(z) * np.dot(self.weights, nxterr)
+    def backerror(self, z: np.ndarray, nxterr: np.ndarray, d_activation: Callable[[float], float]) -> np.ndarray:
+        return d_activation(z) * np.dot(self.weights, nxterr)
 
     def update_weights(self, eta: float, delta: np.ndarray, a: np.ndarray):
         self.weights, self.bias, self.opt = self.opt(self.weights, self.bias, delta, a, eta)
@@ -56,8 +56,6 @@ class nn:
     cost: Callable[[np.ndarray, np.ndarray],float],
     opt= initSGD) -> None:
         self.layers = layers
-        self.activation = np.vectorize(output_activation)
-        self.d_activation = np.vectorize(grad(output_activation))
         self.opt = opt
         self.cost = cost
 
@@ -82,14 +80,15 @@ class nn:
         thence we have to compute grad for each iteration :(
         '''
         dC = grad(self.cost,1)
-        delta = self.d_activation(z[-1])*dC(y,a[-1])
+        print(dC(y,a[-1]), self.cost(y,a[-1]))
+        delta = self.layers[-1].d_activation(z[-1])*dC(y,a[-1])
         #print(y,a[-1],dC(y,a[-1]), self.layers[-1].weights)
         #print(self.d_activation(z[-1]), dC(y,a[-1]), delta,"\n\n")
         '''L-1,L-3,...,1'''
         for l in np.arange(len(self.layers)-1,0,-1):
             layer = self.layers[l]
             '''delta_j^l=sum_k delta_k^{l+1} w_{kj}^{l+1}f'(z_j^l)'''
-            ndelta = layer.backerror(z[l-1],delta)
+            ndelta = layer.backerror(z[l-1],delta, self.layers[l-1].d_activation)
             layer.update_weights(eta, delta, a[l])
             delta = ndelta
         self.layers[0].update_weights(eta, delta, x)

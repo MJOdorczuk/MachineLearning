@@ -23,7 +23,7 @@ def FrankeFunction(x, y, sigma = 0):
 def sincos(x,y,sigma = 0):
     return x * 0
 
-num_points = 1
+num_points = 1000
 noise = 0
 
 xs = (np.random.uniform(0, 1, num_points))
@@ -32,21 +32,26 @@ zs = FrankeFunction(xs, ys, noise) # Target
 
 a = Activation()
 
-l1 = layer(a.sigmoid, 2, 4)
-l2 = layer(a.sigmoid, 4, 15)
-l3 = layer(a.sigmoid, 15, 4)
+l1 = layer(a.sigmoid, 2, 1)
+l2 = layer(a.sigmoid, 4, 5)
+l3 = layer(a.sigmoid, 5, 4)
 l4 = layer(a.sigmoid, 4, 1)
-layers = [l1,l2,l3,l4]
+layers = [l1]
 n = nn(layers, a.sigmoid, meanSquares)
 
 merr = 0
+loss = []
+
+posterr = 0
 
 for i in range(len(xs)):
     x = np.array([xs[i], ys[i]])
     z = np.array([zs[i]])
     prerr = n.error(x,z)
+    loss.append(posterr)
     n.back(x, z, 0.1)
     posterr = n.error(x,z)
+    merr
     merr = (merr * 0.99 + prerr * 0.01)
     #print(f"{i}th train error is {posterr} for test error {prerr}, pseudo-mean is {merr}")
     if(i%100==0):
@@ -60,9 +65,11 @@ X, Y = np.meshgrid(x, y)
 Z = f(X,Y)
 
 fig = plt.figure()
-ax = plt.axes(projection='3d')
-ax.contour3D(X, Y, Z, 50, cmap='binary')
-ax.set_xlabel('x')
-ax.set_ylabel('y')
-ax.set_zlabel('z')
+plt.plot(loss[1:])
 plt.show()
+# ax = plt.axes(projection='3d')
+# ax.contour3D(X, Y, Z, 50, cmap='binary')
+# ax.set_xlabel('x')
+# ax.set_ylabel('y')
+# ax.set_zlabel('z')
+# plt.show()
