@@ -1,5 +1,11 @@
+from __future__ import annotations
+
+from typing import NamedTuple
+
 import autograd.numpy as np
 import numpy
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.model_selection import train_test_split
 
 
 def FrankeFunction(x, y, sigma=0):
@@ -32,9 +38,95 @@ def create_X(x, y, n):
 
 
 def cost_mse(beta, X, lamb, y_true):
-    return np.mean((y_true - np.dot(X, beta))**2)
+    inner = (y_true - np.dot(X, beta))
+    return 1 / len(y_true) * np.dot(inner.T, inner)
 
 
 def cost_mse_ridge(beta, X, lamb, y_true):
     assert lamb is not None
-    return np.mean((y_true - np.dot(X, beta))**2) + lamb * np.dot(beta.T, beta)
+    inner = y_true - np.dot(X, beta)
+    outer = 1 / len(y_true) * np.dot(inner.T, inner)
+
+    return outer + lamb * np.dot(beta.T, beta)
+
+
+class Result(NamedTuple):
+    lr: float
+    lamb: float
+    batchsize: int
+    momentum: bool
+    alpha: float
+    mse: float
+    r2: float
+
+
+def regression_grid_search(
+    model,
+    X,
+    y,
+    *,
+    n_epochs: int,
+    lrs: list[float],
+    batchsize: list[int],
+    lambdas: list[float],
+    momentum: bool,
+    alpha: list[float],
+) -> list[Result]:
+    """Perform a grid search for all given parameters on model."""
+
+    all_results: list[Result] = []
+
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2)
+
+    number_of_params = len(lrs) * len(batchsize) * len(lambdas) * len(alpha)
+
+    if momentum:
+        momentum_perm = [False, True]
+        number_of_params *= 2
+    else:
+        momentum_perm = [False]
+
+    if alpha is None:
+        alpha = [0]
+
+    it = 1
+    for mom in momentum_perm:
+        for a in alpha:
+            for lam in lambdas:
+                for b in batchsize:
+                    for lr in lrs:
+                        print(f"Iteration {it}/{number_of_params}", end="\r")
+                        model.fit(
+                            X_train,
+                            y_train,
+                            lamb=lam,
+                            lr=lr,
+                            n_epochs=n_epochs,
+                            display=False,
+                            batch_size=b,
+                            momentum=mom,
+                            alpha=a,
+                        )
+                        pred = model.predict(X_val)
+
+                        # Make sure non of the values are nan
+                        pred[np.isnan(pred)] = 1e-60
+
+                        all_results.append(
+                            Result(
+                                lr=lr,
+                                lamb=lam,
+                                batchsize=b,
+                                momentum=mom,
+                                alpha=a,
+                                mse=mean_squared_error(y_val, pred),
+                                r2=r2_score(y_val, pred),
+                            )
+                        )
+                        it += 1
+
+    # sort results by mse, best results in element 0
+    all_results = sorted(all_results, key=lambda r: r.mse)
+    assert len(all_results) > 0 and isinstance(all_results[0], Result)
+
+    return all_results

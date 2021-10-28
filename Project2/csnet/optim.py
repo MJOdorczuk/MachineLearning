@@ -2,10 +2,7 @@ from __future__ import annotations
 
 from typing import Generator
 
-import autograd.numpy as np
-from autograd import grad
-
-from csnet.utils import cost_mse
+import numpy as np
 
 
 class SGD():
@@ -95,24 +92,33 @@ class SGD():
         return np.nan_to_num(updated_weights)
 
 
-def _momentum_sgd_step(
+def momentum_sgd_step(
     x: np.ndarray,
     y: np.ndarray,
     weights: np.ndarray,
     lr: float,
     alpha: float,
-    m: float,
+    m: np.ndarray | None,
     grad_cost_function: Callable,
     lamb: np.ndarray | None = None,
 ) -> np.ndarray:
     """One optimization step using momentum SGT."""
+    if alpha > 1:
+        raise AttributeError("alpha must be less the 1")
+
+    if m is None:
+        m = 0
+
     gradient = grad_cost_function(weights, x, lamb, y)
+    gradient[np.isnan(gradient)] = 1e-60
     m = alpha * m + (1 - alpha) * gradient
+    assert isinstance(m, np.ndarray)
+    m[np.isnan(m)] = 1e-60
     weights = weights - lr * m
     return weights, m
 
 
-def _sgd_step(
+def sgd_step(
     x: np.ndarray,
     y: np.ndarray,
     weights: np.ndarray,
@@ -122,10 +128,13 @@ def _sgd_step(
 ) -> np.ndarray:
     """One optimization step using SGT."""
     gradient = grad_cost_function(weights, x, lamb, y)
-    return weights - lr * gradient
+    gradient[np.isnan(gradient)] = 1e-60
+    lr_grad = lr * gradient
+    lr_grad[np.isnan(lr_grad)] = 1e-60
+    return weights - lr_grad
 
 
-def _random_mini_batch_generator(
+def random_mini_batch_generator(
     x: np.ndarray,
     y: np.ndarray,
     batch_size: int,
@@ -134,10 +143,39 @@ def _random_mini_batch_generator(
     mini_batches = x.shape[0] // batch_size +1
     m = x.shape[0]
     for _ in range(mini_batches):
-
         # With replacement as done in the lectures, but also with a constant batch size.
         k = np.random.randint(m, size = batch_size)
         subset_x = x[k]
         subset_y = y[k]
         if subset_x.shape[0] != 0:
             yield subset_x, subset_y
+
+
+def sgd_minibatch(
+    x: np.ndarray,
+    y: np.ndarray,
+    weights: np.ndarray,
+    batch_size: int,
+    lr: float,
+    alpha: float,
+    m: np.ndarray | None,
+    grad_cost: Callable,
+    lamb: float | None,
+    momentum: bool,
+) -> np.ndarray:
+    """Run SGD over all minibatches of the input."""
+    for x_sub, y_sub in random_mini_batch_generator(x, y, batch_size):
+        if momentum:
+            weights, m = momentum_sgd_step(
+                x_sub,
+                y_sub,
+                weights,
+                lr,
+                alpha,
+                m,
+                grad_cost,
+                lamb,
+            )
+        else:
+            weights = sgd_step(x_sub, y_sub, weights, lr, grad_cost, lamb)
+    return weights, m
