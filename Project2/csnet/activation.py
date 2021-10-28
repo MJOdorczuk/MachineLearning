@@ -11,7 +11,7 @@ class Activation:
         self.alpha = alpha
 
     def sigmoid(self, x: np.ndarray) -> np.ndarray:
-        return float(1)/(float(1) + np.exp(-x))
+        return 1.0/(1.0 + np.exp(-x))
 
     def sigmoid_grad(self, x: np.ndarray) -> np.ndarray:
         return self.sigmoid(x) * (1 - self.sigmoid(x))

@@ -23,7 +23,7 @@ def FrankeFunction(x, y, sigma = 0):
 def sincos(x,y,sigma = 0):
     return x * 0
 
-num_points = 1000
+num_points = 100000
 noise = 0
 
 xs = (np.random.uniform(0, 1, num_points))
@@ -32,11 +32,11 @@ zs = FrankeFunction(xs, ys, noise) # Target
 
 a = Activation()
 
-l1 = layer(a.sigmoid, 2, 1)
+l1 = layer(a.sigmoid, 2, 4)
 l2 = layer(a.sigmoid, 4, 5)
 l3 = layer(a.sigmoid, 5, 4)
 l4 = layer(a.sigmoid, 4, 1)
-layers = [l1]
+layers = [l1, l4]
 n = nn(layers, a.sigmoid, meanSquares)
 
 merr = 0
@@ -65,11 +65,11 @@ X, Y = np.meshgrid(x, y)
 Z = f(X,Y)
 
 fig = plt.figure()
-plt.plot(loss[1:])
-plt.show()
-# ax = plt.axes(projection='3d')
-# ax.contour3D(X, Y, Z, 50, cmap='binary')
-# ax.set_xlabel('x')
-# ax.set_ylabel('y')
-# ax.set_zlabel('z')
+# plt.plot(loss[1:])
 # plt.show()
+ax = plt.axes(projection='3d')
+ax.contour3D(X, Y, Z, 50, cmap='binary')
+ax.set_xlabel('x')
+ax.set_ylabel('y')
+ax.set_zlabel('z')
+plt.show()

@@ -80,10 +80,7 @@ class nn:
         thence we have to compute grad for each iteration :(
         '''
         dC = grad(self.cost,1)
-        print(dC(y,a[-1]), self.cost(y,a[-1]))
         delta = self.layers[-1].d_activation(z[-1])*dC(y,a[-1])
-        #print(y,a[-1],dC(y,a[-1]), self.layers[-1].weights)
-        #print(self.d_activation(z[-1]), dC(y,a[-1]), delta,"\n\n")
         '''L-1,L-3,...,1'''
         for l in np.arange(len(self.layers)-1,0,-1):
             layer = self.layers[l]
