@@ -39,7 +39,7 @@ def sgd(
     """
     if x.shape != y.shape:
         raise AttributeError(
-            f"Wrong shape of x and y. Shape {x.shape=} != {y.shape=}"
+            f"Wrong shape of x and y. Shape {x.shape} != {y.shape}"
         )
 
     theta = np.random.randn(x.shape[1] + 1, 1)

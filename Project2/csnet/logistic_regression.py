@@ -9,17 +9,6 @@ from autograd.numpy import exp
 import autograd.numpy as anp
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
-def _sgd_step(
-    x: np.ndarray,
-    y: np.ndarray,
-    weights: np.ndarray,
-    lr: float,
-    grad: Callable,
-    lamb: int = 0,
-) -> np.ndarray:
-    """One optimization step using SGT."""
-    return weights - lr * grad
-
 class LogisticRegression:
 
     def __init__(self, dims: int, optimizer: Callable, loss: Callable) -> None:
@@ -33,6 +22,7 @@ class LogisticRegression:
         self.optimizer = optimizer
         self.loss_func = loss
         self.activation = Activation().sigmoid
+        self.scaler= StandardScaler()
 
     def _sgd_step(self,
         x: np.ndarray,
@@ -76,16 +66,15 @@ class LogisticRegression:
         y = self.forward(x)
         return (y>threshold).astype('int')
 
-    def validate(self, x: np.ndarray, y: np.ndarray, batch_size: int = 1):
+    def validate(self, x: np.ndarray, y: np.ndarray, batch_size: int = 16, lamb: float = 0):
         losses = []
         accuracies = []
-
         for sub_x, sub_y in _random_mini_batch_generator(x, y, batch_size = batch_size):
             if(sub_x.shape[0]==0):
                 continue
             output = self.forward(sub_x)
             predictions = self.predict(sub_x)
-            loss = self.loss_func(output, sub_y)
+            loss = self.loss_func(output, sub_y, lamb, self.weights)
             losses.append(loss)
 
             acc = accuracy(predictions, sub_y)
@@ -119,7 +108,7 @@ class LogisticRegression:
                                         lr,
                                         momentum = True)
 
-    def loss(self, x, weights:np.ndarray, bias:np.ndarray, y: np.ndarray) -> int:
+    def loss(self, x, weights:np.ndarray, bias:np.ndarray, y: np.ndarray, lamb) -> int:
         """
         BCE loss for classification.
 
@@ -135,8 +124,8 @@ class LogisticRegression:
         yhat = 1.0 / (1.0+exp(-a))
         yhat = yhat.ravel()
         n = y.shape[0]
-        #from IPython import embed; embed()
-        return - 1/n * anp.sum(y * anp.log(yhat) + (1-y) * anp.log(1 - yhat))
+
+        return - 1/n * anp.sum(y * anp.log(yhat) + (1-y) * anp.log(1 - yhat)) + (lamb / n) * np.sum(np.square(weights))
 
     def single_step(self, x: np.ndarray, y: np.ndarray, epochs: int = 50, lr: float = 0.01, lamb: float = 0.0, batch_size: int = 1):
         """
@@ -147,8 +136,8 @@ class LogisticRegression:
             return
         grad_cost_function_w = elementwise_grad(self.loss, 1)
         grad_cost_function_b = elementwise_grad(self.loss, 2)
-        gradient_w = grad_cost_function_w(x, self.weights, self.bias, y)
-        gradient_b = grad_cost_function_b(x, self.weights, self.bias, y)
+        gradient_w = grad_cost_function_w(x, self.weights, self.bias, y, lamb)
+        gradient_b = grad_cost_function_b(x, self.weights, self.bias, y, lamb)
 
         self.weights = self._sgd_step(x, 
                                         y, 
@@ -164,13 +153,15 @@ class LogisticRegression:
                                         lamb = lamb)
         
 
-    def train_model(self, x: np.ndarray, y: np.ndarray, epochs: int = 50, lr:float = 0.01, lamb: float = 0.0, batch_size: int = 10, test_size: float = 0.2):
+    def train_model(self, x: np.ndarray, y: np.ndarray, epochs: int = 50, lr:float = 0.01, lamb: float = 0.0, batch_size: int = 16, eval_size:float = 0.25):
+        
+        # Train, eval set
+        X_train, X_eval, y_train, y_eval = train_test_split(x, y, test_size=eval_size)
+        
 
-        X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=test_size)
-        scaler= StandardScaler()
-        scaler.fit(X_train)
-        X_train = scaler.transform(X_train)
-        X_test = scaler.transform(X_test)
+        self.scaler.fit(X_train)
+        X_train = self.scaler.transform(X_train)
+        X_eval = self.scaler.transform(X_eval)
 
         best_epoch = 0
         best_loss = np.inf
@@ -181,21 +172,19 @@ class LogisticRegression:
         train_accuracies = []
         test_losses = []
         test_accuracies = []
-        batch_size = 10
 
         for epoch in range(epochs):
             
             # Single step
             self.single_step(X_train, y_train, epochs = 1, lr =lr, lamb = lamb, batch_size=batch_size)
             
-            train_loss, train_acc = self.validate(X_train, y_train)
+            train_loss, train_acc = self.validate(X_train, y_train, batch_size,lamb)
             train_losses.append(train_loss)
             train_accuracies.append(train_acc)
 
-            test_loss, test_acc = self.validate(X_test, y_test)
+            test_loss, test_acc = self.validate(X_eval, y_eval, batch_size, lamb)
             test_losses.append(test_loss)
             test_accuracies.append(test_acc)
-            print(test_loss)
             # If new best:
             if best_acc < test_acc:
                 best_epoch = epoch
@@ -203,6 +192,6 @@ class LogisticRegression:
                 best_acc = test_acc
                 best_model = (self.weights, self.bias)
         
-        return best_model, best_epoch, best_acc, train_losses, train_accuracies, test_losses, test_accuracies
+        return best_model, best_loss, best_epoch, best_acc, train_losses, train_accuracies, test_losses, test_accuracies
         
 

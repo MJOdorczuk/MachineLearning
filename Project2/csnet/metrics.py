@@ -10,5 +10,6 @@ def accuracy(pred: np.ndarray, true: np.ndarray) -> int:
         raise AttributeError(
             f"Wrong shape of true and pred: {pred.shape} != {true.shape}"
         )
+    true = true.reshape(-1,1)
 
     return np.sum(pred == true) / pred.shape[0]
