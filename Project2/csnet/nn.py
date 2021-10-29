@@ -7,6 +7,7 @@ from autograd import grad
 '''Example, to be removed when real optimizer developed.
 some_counter is just an example argument showing, how the evolving of the optimizer should proceed'''
 def SGD(w,b,delta,a,eta,some_counter):
+    #print(np.dot(a.reshape(-1,1),delta.reshape(1,-1))*eta)
     return (w-np.dot(a.reshape(-1,1),delta.reshape(1,-1))*eta,
         b-delta*eta,
         lambda w,b,delta,a,eta: SGD(w,b,delta,a,eta,some_counter+1))
@@ -30,8 +31,9 @@ class layer:
     def __init__(self, activ: Callable[[float],float], input_size: int, output_size: int, opt = initSGD) -> None:
         self.activation = activ
         self.d_activation = np.vectorize(grad(activ))
-        self.weights = np.random.normal(size=(input_size,output_size))*0.0
-        self.bias = np.random.normal(size=(output_size))*0.0
+        #print(self.d_activation(5.1))
+        self.weights = np.random.normal(size=(input_size,output_size))
+        self.bias = np.zeros(output_size)
         self.input_size = input_size
         self.outsize = output_size
         self.opt = opt
@@ -52,12 +54,12 @@ class layer:
 class nn:
     def __init__(self,
     layers: List[layer],
-    output_activation: Callable[[float],float],
     cost: Callable[[np.ndarray, np.ndarray],float],
     opt= initSGD) -> None:
         self.layers = layers
         self.opt = opt
         self.cost = cost
+        self.i = 0
 
     def forward(self, x: np.ndarray) -> np.ndarray:
         y = x
@@ -80,8 +82,12 @@ class nn:
         thence we have to compute grad for each iteration :(
         '''
         dC = grad(self.cost,1)
+        #print(self.layers[-1].d_activation(z[-1]))
+        #print(self.layers[-1].d_activation(z[-1]),dC(y,a[-1]),y-a[-1],"\n\n")
         delta = self.layers[-1].d_activation(z[-1])*dC(y,a[-1])
+        self.i += 1
         '''L-1,L-3,...,1'''
+        #print(delta)
         for l in np.arange(len(self.layers)-1,0,-1):
             layer = self.layers[l]
             '''delta_j^l=sum_k delta_k^{l+1} w_{kj}^{l+1}f'(z_j^l)'''
