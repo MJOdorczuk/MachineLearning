@@ -2,12 +2,12 @@ from autograd import numpy as np
 from typing import Callable
 from typing import List
 from autograd import grad
+from time import time
 
 
 '''Example, to be removed when real optimizer developed.
 some_counter is just an example argument showing, how the evolving of the optimizer should proceed'''
 def SGD(w,b,delta,a,eta,some_counter):
-    #print(np.dot(a.reshape(-1,1),delta.reshape(1,-1))*eta)
     return (w-np.dot(a.reshape(-1,1),delta.reshape(1,-1))*eta,
         b-delta*eta,
         lambda w,b,delta,a,eta: SGD(w,b,delta,a,eta,some_counter+1))
@@ -60,6 +60,7 @@ class nn:
         self.opt = opt
         self.cost = cost
         self.i = 0
+        self.deltas = []
 
     def forward(self, x: np.ndarray) -> np.ndarray:
         y = x
@@ -85,6 +86,7 @@ class nn:
         #print(self.layers[-1].d_activation(z[-1]))
         #print(self.layers[-1].d_activation(z[-1]),dC(y,a[-1]),y-a[-1],"\n\n")
         delta = self.layers[-1].d_activation(z[-1])*dC(y,a[-1])
+        self.deltas.append(delta)
         self.i += 1
         '''L-1,L-3,...,1'''
         #print(delta)
@@ -96,5 +98,9 @@ class nn:
             delta = ndelta
         self.layers[0].update_weights(eta, delta, x)
 
-    def error(self, x: np.ndarray, y: np.ndarray) -> None:
+    def error(self, x: np.ndarray, y: np.ndarray):
         return self.cost(y, self.forward(x))
+
+    def batch_error(self, x, y):
+        y_tilde = np.apply_along_axis(self.forward, 1, x)
+        return self.cost(y, y_tilde)
