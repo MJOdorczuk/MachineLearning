@@ -22,8 +22,8 @@ def FrankeFunction(x, y, sigma = 0):
 def sincos(x,y,sigma = 0):
     return x * y
 
-num_points = 100
-num_epochs = 100
+num_points = 10
+num_epochs = 1
 noise = 0
 
 
@@ -32,11 +32,11 @@ a = Activation()
 def id(x):
     return x
 
-l1 = layer(a.sigmoid, 2, 10)
-l2 = layer(a.sigmoid, 10, 15)
-l3 = layer(a.sigmoid, 15, 10)
-l4 = layer(id, 10, 1)
-layers = [l1, l4]
+l1 = layer(a.sigmoid, 2, 4)
+l2 = layer(a.sigmoid, 4, 8)
+l3 = layer(a.sigmoid, 8, 16)
+l4 = layer(id, 16, 1)
+layers = [l1, l2, l3, l4]
 n = nn(layers, meanSquares)
 
 merr = 0
@@ -48,56 +48,67 @@ x = np.linspace(0,1,30)
 y = np.linspace(0,1,30)
 X, Y = np.meshgrid(x, y)
 
-l1w, l4w =l1.weights, l4.weights
-l1nw, l4nw = l1w, l4w
 
 for j in range(num_epochs):
     xs = (np.random.uniform(0, 1, num_points))
     ys =  (np.random.uniform(0, 1, num_points))
     zs = FrankeFunction(xs, ys, noise) # Target
-    err = n.batch_error(np.array([xs,ys]).T,zs)
+    err = n.error(np.array([xs,ys]).T,zs)
     print("epoch",j,err)
     loss.append(err)
-    for i in range(len(xs)):
-        x_ = np.array([xs[i], ys[i]])
-        z_ = np.array([zs[i]])
-        prerr = n.error(x_,z_)
-        n.back(x_, z_, 0.01)
-        merr = (merr * 0.99 + prerr * 0.01)
-        #print(f"{i}th train error is {posterr} for test error {prerr}, pseudo-mean is {merr}")
-        if(i%1000==0):
-            #print(l1.weights, l4.weights)
-            pass#print(merr)
-    l1nw = l1.weights
-    l4nw = l4.weights
-    print("delta l1 = ", l1nw - l1w)
-    print("delta l4 = ", l4nw - l4w)
-    if j < 10:
-        l1w = l1nw
-        l4w = l4nw
+
+    # f = np.vectorize((lambda x,y: n.forward([x,y])[0]))
+    # x = np.linspace(0,1,30)
+    # y = np.linspace(0,1,30)
+    # X, Y = np.meshgrid(x, y)
+    # Z = f(X,Y)
+
+    # ax = plt.axes(projection='3d')
+    # ax.contour3D(X, Y, Z, 50, cmap='viridis')
+
+    # x = np.linspace(0,1,30)
+    # y = np.linspace(0,1,30)
+    # X, Y = np.meshgrid(x, y)
+    # Z = FrankeFunction(X,Y)
+    # ax.contour3D(X, Y, Z, 50, cmap='binary')
+
+    # ax.set_xlabel('x')
+    # ax.set_ylabel('y')
+    # ax.set_zlabel('z')
+    # plt.show()
+    x = np.array([xs,ys]).T
+    n.back(x, zs, 0.01)
+    # for i in range(len(xs)):
+    #     x_ = np.array([xs[i], ys[i]])
+    #     z_ = np.array([zs[i]])
+    #     prerr = n.error(x_,z_)
+    #     n.back(x_, z_, 0.01)
+    #     merr = (merr * 0.99 + prerr * 0.01)
+    #     #print(f"{i}th train error is {posterr} for test error {prerr}, pseudo-mean is {merr}")
+    #     if(i%1000==0):
+    #         #print(l1.weights, l4.weights)
+    #         pass#print(merr)
+
 
 
 
 plt.plot(loss[1:])
 plt.show()
 
-plt.plot(n.deltas)
-plt.show()
+x = np.linspace(0,1,30)
+y = np.linspace(0,1,30)
+X, Y = np.meshgrid(x, y)
+Z = FrankeFunction(X,Y)
+
+ax = plt.axes(projection='3d')
+ax.contour3D(X, Y, Z, 50, cmap='binary')
 
 f = np.vectorize((lambda x,y: n.forward([x,y])[0]))
 x = np.linspace(0,1,30)
 y = np.linspace(0,1,30)
 X, Y = np.meshgrid(x, y)
 Z = f(X,Y)
-
-ax = plt.axes(projection='3d')
-ax.contour3D(X, Y, Z, 50, cmap='binary')
-
-x = np.linspace(0,1,30)
-y = np.linspace(0,1,30)
-X, Y = np.meshgrid(x, y)
-Z = FrankeFunction(X,Y)
-ax.contour3D(X, Y, Z, 50, cmap='binary')
+ax.contour3D(X, Y, Z, 50, cmap='viridis')
 
 ax.set_xlabel('x')
 ax.set_ylabel('y')

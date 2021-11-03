@@ -8,15 +8,15 @@ from time import time
 '''Example, to be removed when real optimizer developed.
 some_counter is just an example argument showing, how the evolving of the optimizer should proceed'''
 def SGD(w,b,delta,a,eta,some_counter):
-    return (w-np.dot(a.reshape(-1,1),delta.reshape(1,-1))*eta,
-        b-delta*eta,
+    return (w-np.dot(np.asmatrix(delta), a).T * eta / delta.shape[1],
+        b-np.dot(delta, np.ones(delta.shape[1]) / delta.shape[1])*eta,
         lambda w,b,delta,a,eta: SGD(w,b,delta,a,eta,some_counter+1))
 
 def initSGD(w,b,delta,a,eta):
     return SGD(w,b,delta,a,eta,0)
 
-def meanSquares(x,y):
-    return np.mean((x-y)**2)
+def meanSquares(x):
+    return np.mean(x**2)
 
 # type SF =
 #     | A of (float -> float * SF)
@@ -46,7 +46,7 @@ class layer:
 
     '''delta_j^l=sum_k delta_k^{l+1} w_{kj}^{l+1}f'(z_j^l)'''
     def backerror(self, z: np.ndarray, nxterr: np.ndarray, d_activation: Callable[[float], float]) -> np.ndarray:
-        return d_activation(z) * np.dot(self.weights, nxterr)
+        return np.multiply(d_activation(z).T, np.dot(self.weights, nxterr))
 
     def update_weights(self, eta: float, delta: np.ndarray, a: np.ndarray):
         self.weights, self.bias, self.opt = self.opt(self.weights, self.bias, delta, a, eta)
@@ -54,13 +54,13 @@ class layer:
 class nn:
     def __init__(self,
     layers: List[layer],
-    cost: Callable[[np.ndarray, np.ndarray],float],
+    # I know that it can depend on different traits but let us limit ourselves to just the difference for now
+    cost: Callable[[np.ndarray],float],
     opt= initSGD) -> None:
         self.layers = layers
         self.opt = opt
         self.cost = cost
         self.i = 0
-        self.deltas = []
 
     def forward(self, x: np.ndarray) -> np.ndarray:
         y = x
@@ -82,11 +82,11 @@ class nn:
         The cost function can depend on both y and y_tilde separately and not only on their difference
         thence we have to compute grad for each iteration :(
         '''
-        dC = grad(self.cost,1)
+        dC = grad(self.cost)
         #print(self.layers[-1].d_activation(z[-1]))
         #print(self.layers[-1].d_activation(z[-1]),dC(y,a[-1]),y-a[-1],"\n\n")
-        delta = self.layers[-1].d_activation(z[-1])*dC(y,a[-1])
-        self.deltas.append(delta)
+        costs = 2.0 * (a[-1] - np.asmatrix(y).T)
+        delta = np.multiply(np.asmatrix(self.layers[-1].d_activation(z[-1])), np.asmatrix(costs)).T
         self.i += 1
         '''L-1,L-3,...,1'''
         #print(delta)
@@ -99,8 +99,5 @@ class nn:
         self.layers[0].update_weights(eta, delta, x)
 
     def error(self, x: np.ndarray, y: np.ndarray):
-        return self.cost(y, self.forward(x))
-
-    def batch_error(self, x, y):
-        y_tilde = np.apply_along_axis(self.forward, 1, x)
-        return self.cost(y, y_tilde)
+        print(y.shape, self.forward(x).shape, (y-self.forward(x)).shape)
+        return self.cost(y - self.forward(x))
