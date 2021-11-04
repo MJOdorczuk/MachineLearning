@@ -22,8 +22,8 @@ def FrankeFunction(x, y, sigma = 0):
 def sincos(x,y,sigma = 0):
     return x * y
 
-num_points = 10
-num_epochs = 1
+num_points = 1000
+num_epochs = 100
 noise = 0
 
 
@@ -33,8 +33,8 @@ def id(x):
     return x
 
 l1 = layer(a.sigmoid, 2, 4)
-l2 = layer(a.sigmoid, 4, 8)
-l3 = layer(a.sigmoid, 8, 16)
+l2 = layer(a.relu, 4, 8)
+l3 = layer(a.relu, 8, 16)
 l4 = layer(id, 16, 1)
 layers = [l1, l2, l3, l4]
 n = nn(layers, meanSquares)
@@ -48,46 +48,17 @@ x = np.linspace(0,1,30)
 y = np.linspace(0,1,30)
 X, Y = np.meshgrid(x, y)
 
+eta = 0.01
 
 for j in range(num_epochs):
     xs = (np.random.uniform(0, 1, num_points))
     ys =  (np.random.uniform(0, 1, num_points))
-    zs = FrankeFunction(xs, ys, noise) # Target
+    zs = np.asmatrix(FrankeFunction(xs, ys, noise)).T # Target
     err = n.error(np.array([xs,ys]).T,zs)
     print("epoch",j,err)
     loss.append(err)
-
-    # f = np.vectorize((lambda x,y: n.forward([x,y])[0]))
-    # x = np.linspace(0,1,30)
-    # y = np.linspace(0,1,30)
-    # X, Y = np.meshgrid(x, y)
-    # Z = f(X,Y)
-
-    # ax = plt.axes(projection='3d')
-    # ax.contour3D(X, Y, Z, 50, cmap='viridis')
-
-    # x = np.linspace(0,1,30)
-    # y = np.linspace(0,1,30)
-    # X, Y = np.meshgrid(x, y)
-    # Z = FrankeFunction(X,Y)
-    # ax.contour3D(X, Y, Z, 50, cmap='binary')
-
-    # ax.set_xlabel('x')
-    # ax.set_ylabel('y')
-    # ax.set_zlabel('z')
-    # plt.show()
     x = np.array([xs,ys]).T
-    n.back(x, zs, 0.01)
-    # for i in range(len(xs)):
-    #     x_ = np.array([xs[i], ys[i]])
-    #     z_ = np.array([zs[i]])
-    #     prerr = n.error(x_,z_)
-    #     n.back(x_, z_, 0.01)
-    #     merr = (merr * 0.99 + prerr * 0.01)
-    #     #print(f"{i}th train error is {posterr} for test error {prerr}, pseudo-mean is {merr}")
-    #     if(i%1000==0):
-    #         #print(l1.weights, l4.weights)
-    #         pass#print(merr)
+    n.back(x, zs, eta)
 
 
 

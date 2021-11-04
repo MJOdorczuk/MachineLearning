@@ -2,7 +2,6 @@ from autograd import numpy as np
 from typing import Callable
 from typing import List
 from autograd import grad
-from time import time
 
 
 '''Example, to be removed when real optimizer developed.
@@ -15,8 +14,11 @@ def SGD(w,b,delta,a,eta,some_counter):
 def initSGD(w,b,delta,a,eta):
     return SGD(w,b,delta,a,eta,0)
 
-def meanSquares(x):
-    return np.mean(x**2)
+def meanSquares(x, y):
+    return np.mean(np.square(x-y))
+
+def meanSquaresGrad(x, y):
+    return (y-x)
 
 # type SF =
 #     | A of (float -> float * SF)
@@ -59,7 +61,7 @@ class nn:
     opt= initSGD) -> None:
         self.layers = layers
         self.opt = opt
-        self.cost = cost
+        self.cost = meanSquares
         self.i = 0
 
     def forward(self, x: np.ndarray) -> np.ndarray:
@@ -82,11 +84,10 @@ class nn:
         The cost function can depend on both y and y_tilde separately and not only on their difference
         thence we have to compute grad for each iteration :(
         '''
-        dC = grad(self.cost)
+        dC = meanSquaresGrad
         #print(self.layers[-1].d_activation(z[-1]))
         #print(self.layers[-1].d_activation(z[-1]),dC(y,a[-1]),y-a[-1],"\n\n")
-        costs = 2.0 * (a[-1] - np.asmatrix(y).T)
-        delta = np.multiply(np.asmatrix(self.layers[-1].d_activation(z[-1])), np.asmatrix(costs)).T
+        delta = np.multiply(np.asmatrix(self.layers[-1].d_activation(z[-1])), dC(y,a[-1])).T
         self.i += 1
         '''L-1,L-3,...,1'''
         #print(delta)
@@ -99,5 +100,4 @@ class nn:
         self.layers[0].update_weights(eta, delta, x)
 
     def error(self, x: np.ndarray, y: np.ndarray):
-        print(y.shape, self.forward(x).shape, (y-self.forward(x)).shape)
-        return self.cost(y - self.forward(x))
+        return self.cost(y, self.forward(x))
