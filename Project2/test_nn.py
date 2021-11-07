@@ -22,9 +22,9 @@ def FrankeFunction(x, y, sigma = 0):
 def sincos(x,y,sigma = 0):
     return x * y
 
-num_points = 1000
-num_epochs = 100
-noise = 0
+num_points = 10
+num_epochs = 10000
+noise = 0.01
 
 
 
@@ -32,10 +32,10 @@ a = Activation()
 def id(x):
     return x
 
-l1 = layer(a.sigmoid, 2, 4)
-l2 = layer(a.relu, 4, 8)
-l3 = layer(a.relu, 8, 16)
-l4 = layer(id, 16, 1)
+l1 = layer(a.relu, 2, 8)
+l2 = layer(a.sigmoid, 8, 16)
+l3 = layer(a.relu, 16, 32)
+l4 = layer(id, 32, 1)
 layers = [l1, l2, l3, l4]
 n = nn(layers, meanSquares)
 
@@ -48,7 +48,7 @@ x = np.linspace(0,1,30)
 y = np.linspace(0,1,30)
 X, Y = np.meshgrid(x, y)
 
-eta = 0.01
+eta = 0.001
 
 for j in range(num_epochs):
     xs = (np.random.uniform(0, 1, num_points))
