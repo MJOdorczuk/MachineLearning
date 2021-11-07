@@ -31,6 +31,36 @@ def mean_squares_grad(x, y):
 
 class layer:
     def __init__(self, activ: Callable[[float],float], input_size: int, output_size: int, opt = init_SGD) -> None:
+        """Feed Forward Neural Network layer implementation
+
+        Parameters
+        ----------
+        activ   :
+            Activation function for this layer
+        input_size   :
+            Size of the previous layer/input neurons
+        output_size  :
+            Number of samples to use in each mini-batch.
+        epochs  :
+            Number of iteration over the mini-batches.
+        lr  :
+            Learning rate/step lenght used in gradient decent.
+        silent  :
+            Print output or not
+        momentum :
+            Use momentum in calculations
+        alpha   :
+            Gradient decay constant used in momentum.
+
+        Yields
+        -------
+        np.ndarray
+
+        Returns
+        -------
+        np.ndarray
+
+        """
         self.activation = activ
         self.d_activation = np.vectorize(grad(activ))
         #print(self.d_activation(5.1))
