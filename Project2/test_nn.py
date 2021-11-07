@@ -1,7 +1,7 @@
 import random
 
 from autograd import numpy as np
-from csnet.nn import layer, nn, meanSquares
+from csnet.nn import layer, nn
 from csnet.activation import Activation
 from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
@@ -23,7 +23,7 @@ def sincos(x,y,sigma = 0):
     return x * y
 
 num_points = 10
-num_epochs = 10000
+num_epochs = 1000
 noise = 0.01
 
 
@@ -37,7 +37,7 @@ l2 = layer(a.sigmoid, 8, 16)
 l3 = layer(a.relu, 16, 32)
 l4 = layer(id, 32, 1)
 layers = [l1, l2, l3, l4]
-n = nn(layers, meanSquares)
+n = nn(layers)
 
 merr = 0
 loss = []
@@ -53,12 +53,13 @@ eta = 0.001
 for j in range(num_epochs):
     xs = (np.random.uniform(0, 1, num_points))
     ys =  (np.random.uniform(0, 1, num_points))
-    zs = np.asmatrix(FrankeFunction(xs, ys, noise)).T # Target
+    zs = FrankeFunction(xs, ys, noise)
     err = n.error(np.array([xs,ys]).T,zs)
     print("epoch",j,err)
     loss.append(err)
     x = np.array([xs,ys]).T
-    n.back(x, zs, eta)
+    n.forward(x)
+    n.back(zs, eta)
 
 
 
