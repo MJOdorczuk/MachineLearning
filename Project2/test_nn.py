@@ -54,7 +54,7 @@ for j in range(num_epochs):
     xs = (np.random.uniform(0, 1, num_points))
     ys =  (np.random.uniform(0, 1, num_points))
     zs = np.asmatrix(FrankeFunction(xs, ys, noise)).T # Target
-    err = n.error(np.array([xs,ys]).T,zs)
+    err = n.error(np.array([xs,ys]),zs)
     print("epoch",j,err)
     loss.append(err)
     x = np.array([xs,ys]).T
