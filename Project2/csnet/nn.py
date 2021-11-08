@@ -2,26 +2,22 @@ from autograd import numpy as np
 from typing import Callable
 from typing import List
 from autograd import grad, elementwise_grad
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import r2_score
 
+
+def mean_squared_error(x,y):
+    return np.mean(np.square(x-y))
 
 '''Example, to be removed when real optimizer developed.
 some_counter is just an example argument showing, how the evolving of the optimizer should proceed'''
 def SGD(w,b,delta,a,eta,some_counter):
-    return (w-np.dot(np.asmatrix(delta), a).T * eta / delta.shape[1],
-        b-np.dot(delta, np.ones(delta.shape[1]) / delta.shape[1])*eta,
-        lambda w,b,delta,a,eta: SGD(w,b,delta,a,eta,some_counter+1))
+    new_weights = w - eta * np.dot(delta, a).T / delta.shape[1]
+    new_biases = b - eta * np.mean(delta, 1)
+    new_opt = lambda w,b,delta,a,eta: SGD(w,b,delta,a,eta,some_counter+1)
+    return new_weights, new_biases, new_opt
 
 def init_SGD(w,b,delta,a,eta):
     return SGD(w,b,delta,a,eta,0)
-
-# type SF =
-#     | A of (float -> float * SF)
-#
-# let rec f (x: int) (c: float) : float * SF=
-#     c, A (f (x+1))
-#
-# That's how you type things like opt in OCaml, do you know, how to type it here?
 
 
 class layer:
@@ -127,6 +123,7 @@ class nn:
         """
         self.layers = layers
         self.cost = cost
+        self.d_cost = elementwise_grad(self.cost, 1)
 
     def forward(self, x: np.ndarray) -> np.ndarray:
         """Neural network output after feeding to the activation function.
@@ -158,19 +155,16 @@ class nn:
             Learning rate.
         """
         a = [layer.a for layer in self.layers]
-        a.insert(0, self.x)
         z = [layer.z for layer in self.layers]
 
-        d_cost = elementwise_grad(self.cost, 0)
-        print(y.shape, a[-1].shape)
-        delta = self.layers[-1].d_activation(z[-1]) * d_cost(y,a[-1])
+        delta = self.layers[-1].d_activation(z[-1]).T * self.d_cost(y,a[-1].T)
         '''L-1,L-3,...,1'''
         #print(delta)
         for l in np.arange(len(self.layers)-1,0,-1):
             layer = self.layers[l]
             '''delta_j^l=sum_k delta_k^{l+1} w_{kj}^{l+1}f'(z_j^l)'''
             new_delta = layer.back_error(z[l-1],delta, self.layers[l-1].d_activation)
-            layer.update_weights(eta, delta, a[l])
+            layer.update_weights(eta, delta, a[l-1])
             delta = new_delta
         self.layers[0].update_weights(eta, delta, self.x)
 

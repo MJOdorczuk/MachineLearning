@@ -23,8 +23,8 @@ def sincos(x,y,sigma = 0):
     return x * y
 
 num_points = 10
-num_epochs = 1000
-noise = 0.01
+num_epochs = 100
+noise = 0.001
 
 
 
@@ -48,20 +48,18 @@ x = np.linspace(0,1,30)
 y = np.linspace(0,1,30)
 X, Y = np.meshgrid(x, y)
 
-eta = 0.001
+eta = 0.01
 
 for j in range(num_epochs):
     xs = (np.random.uniform(0, 1, num_points))
     ys =  (np.random.uniform(0, 1, num_points))
-    zs = FrankeFunction(xs, ys, noise)
+    zs = np.array([[z] for z in FrankeFunction(xs, ys, noise)]).T
     err = n.error(np.array([xs,ys]).T,zs)
     print("epoch",j,err)
     loss.append(err)
     x = np.array([xs,ys]).T
     n.forward(x)
     n.back(zs, eta)
-
-
 
 
 plt.plot(loss[1:])
