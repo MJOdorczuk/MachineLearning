@@ -47,7 +47,7 @@ def tune_neural_network(X_train: np.ndarray,
 
     activations = Activation()
 
-    for lr in [3, 2.5, 2, 1.5]:
+    for lr in [3, 2.5, 2, 1.5, 1, 0.5]:
         print(f"New Learning rate: {lr}")
         for num_layers in range(3):
             for activation in activations.get_all_activations():
@@ -174,11 +174,11 @@ def train_and_test_neural_net(X: np.ndarray, Z: np.ndarray, epochs: int = 1000, 
 
     # Plotting losses and R2
     plt.plot(returns['train_losses'], label = "Train loss")
-    plt.plot(returns['eval_losses'], label = "Test loss")
+    plt.plot(returns['eval_losses'], label = "Eval loss")
     plt.legend()
     plt.show()
     plt.plot(returns['train_r2'], label = "Train R2")
-    plt.plot(returns['eval_r2'], label = "Test R2")
+    plt.plot(returns['eval_r2'], label = "Eval R2")
     plt.legend()
     plt.show()
 
