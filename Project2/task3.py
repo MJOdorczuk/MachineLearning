@@ -1,13 +1,11 @@
 import random
-from itertools import permutations
 import copy
+from typing import Callable
 
 from autograd import numpy as np
 import matplotlib.pyplot as plt
 
-from csnet.nn import Layer, NeuralNetwork
-from csnet.activation import Activation
-from csnet.loss import mean_squared_error
+from csnet.trainer import tune_neural_network
 from sklearn.metrics import r2_score
 
 from sklearn.model_selection import train_test_split
@@ -23,130 +21,8 @@ def FrankeFunction(x, y, sigma = 0):
 
     return (term1 + term2 + term3 + term4) + sigma*noise
 
-def tune_neural_network(X_train: np.ndarray, 
-                        Z_train: np.ndarray, 
-                        X_eval: np.ndarray, 
-                        Z_eval: np.ndarray, 
-                        epochs:int = 1000, 
-                        batch_size:int = 16, 
-                        lamb: float = 0):
-    
-    global_best_model = None
-    global_best_loss = np.inf
-    global_best_r2 = -np.inf
-    global_best_lr = 0
-    global_best_model_object = None
-    global_best_lamb = 0
-    global_best_neuron_combo = None
-    global_best_activation = None
 
-    global_best_train_losses = None
-    global_best_eval_losses = None
-    global_best_train_r2 = None
-    global_best_eval_r2 = None
-
-    activations = Activation()
-
-    for lr in [3, 2.5, 2, 1.5, 1, 0.5]:
-        print(f"New Learning rate: {lr}")
-        for num_layers in range(3):
-            for activation in activations.get_all_activations():
-                all_num_neurons_combinations = permutations([1,2,3,4,5], num_layers)
-                for neuron_combination in all_num_neurons_combinations:
-                    
-                    # Construct Neural network
-                    input_size = X_train.shape[1]
-                    layers = []
-                    for neurons_for_a_layer in neuron_combination:
-                        layer = Layer(activation, input_size, neurons_for_a_layer)
-                        input_size = neurons_for_a_layer
-                        """
-                        # TODO
-                        # test different ways of implementing weights
-                        Something like:
-                        layer.weights = np.something_not_gaussian(input_size, neurons_for_a_layer)
-                        """
-                        layers.append(layer)
-                    layers.append(Layer(activations.identity, input_size, 1))
-
-                    network = NeuralNetwork(layers, mean_squared_error)
-                    
-                    train_losses = []
-                    train_r2_scores = []
-
-                    eval_losses = []
-                    eval_r2_scores = []
-
-                    best_model = None
-                    best_loss = np.inf
-                    best_r2 = -np.inf
-
-
-                    for epoch in range(epochs):
-                        
-                        # Forward Pass
-                        output = network.forward(X_train)
-                        
-                        # MSE and R2
-                        train_loss = np.mean(network.cost(output, Z_train))
-                        train_losses.append(train_loss)
-                        train_r2 = r2_score(Z_train, output)
-                        train_r2_scores.append(train_r2)
-                        
-                        # Backward pass
-                        network.backward(Z_train, lr)
-
-                        # Eval
-                        eval_output = network.forward(X_eval)
-                        eval_loss = np.mean(network.cost(eval_output, Z_eval))
-                        eval_losses.append(eval_loss)
-                        eval_r2 = r2_score(Z_eval, eval_output)
-                        eval_r2_scores.append(eval_r2)
-
-                        """
-                        if epoch % 500 == 0:
-                            print(f"Epoch {epoch}, Train R2: {train_r2}, Train loss: {train_loss}")
-                            print(f"Epoch {epoch}, Eval R2: {eval_r2}, Eval loss: {eval_loss}")
-                        """
-
-                        # Tuning hyperparameters on eval set.
-                        if eval_r2 > best_r2:
-                            best_model = copy.deepcopy(network)
-                            best_loss = eval_loss
-                            best_r2 = eval_r2
-
-                    # Tuning hyperparameters on eval set.
-                    if best_r2 > global_best_r2:
-                        print(f"New best R2: {best_r2}, MSE: {best_loss}, learning rate: {lr} with {neuron_combination} and activation {activation.__name__}")
-                        global_best_model = best_model
-                        global_best_loss = best_loss
-                        global_best_r2 = best_r2
-                        global_best_lr = lr
-                        global_best_neuron_combo = neuron_combination
-                        global_best_activation = activation
-
-                        global_best_train_losses = train_losses
-                        global_best_eval_losses = eval_losses
-                        global_best_train_r2 = train_r2_scores
-                        global_best_eval_r2 = eval_r2_scores
-
-    returns = {
-        'MSE': global_best_loss,
-        'r2': global_best_r2,
-        'model': global_best_model,
-        'activation': global_best_activation,
-        'lr': global_best_lr,
-        'layer_neurons': global_best_neuron_combo,
-        'train_losses': global_best_train_losses,
-        'eval_losses': global_best_eval_losses,
-        'train_r2': global_best_train_r2,
-        'eval_r2': global_best_eval_r2
-    }
-
-    return returns
-
-
-def train_and_test_neural_net(X: np.ndarray, Z: np.ndarray, epochs: int = 1000, batch_size: int = 16, lamb: float = 0):
+def train_and_test_neural_net_regression(X: np.ndarray, Z: np.ndarray, epochs: int = 1000, batch_size: int = 16, lamb: float = 0):
 
     # Train and test (not evel - eval are being split in the trianing form the trianing set)
     X_train, X_test, z_train, z_test = train_test_split(X, Z, test_size=0.2)
@@ -202,4 +78,4 @@ if __name__ == '__main__':
     X = np.column_stack((x,y))
     Z = FrankeFunction(x, y, noise).reshape(-1,1)
     
-    train_and_test_neural_net(X, Z, epochs=num_epochs)
+    train_and_test_neural_net_regression(X, Z, epochs=num_epochs)
