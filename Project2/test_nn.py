@@ -5,6 +5,8 @@ from csnet.nn import layer, nn
 from csnet.activation import Activation
 from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
+from sklearn.metrics import mean_squared_error as mse
+from sklearn.metrics import r2_score
 
 np.random.seed(0)
 random.seed(0)
@@ -20,7 +22,7 @@ def FrankeFunction(x, y, sigma = 0):
     return (term1 + term2 + term3 + term4) + sigma*noise
 
 num_points = 100
-num_epochs = 1000
+num_epochs = 100
 noise = 0.001
 
 a = Activation()
@@ -49,11 +51,11 @@ for j in range(num_epochs):
     xs = (np.random.uniform(0, 1, num_points))
     ys =  (np.random.uniform(0, 1, num_points))
     zs = np.array([[z] for z in FrankeFunction(xs, ys, noise)]).T
-    err = n.error(np.array([xs,ys]).T,zs)
+    x = np.array([xs,ys]).T
+    z_tilde = n.forward(x)
+    err = mse(zs.T, z_tilde)
     print("epoch",j,err)
     loss.append(err)
-    x = np.array([xs,ys]).T
-    n.forward(x)
     n.back(zs, eta)
 
 

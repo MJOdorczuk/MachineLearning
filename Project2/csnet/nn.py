@@ -2,11 +2,11 @@ from autograd import numpy as np
 from typing import Callable
 from typing import List
 from autograd import grad, elementwise_grad
-from sklearn.metrics import r2_score
+from sklearn.metrics import r2_score, mean_squared_error
 
 
-def mean_squared_error(x):
-    return np.mean(np.square(x))
+def mean_squared_error(x, y):
+    return np.mean(np.square(x - y), axis=0)
 
 '''Example, to be removed when real optimizer developed.
 some_counter is just an example argument showing, how the evolving of the optimizer should proceed'''
@@ -157,7 +157,7 @@ class nn:
         a = [layer.a for layer in self.layers]
         z = [layer.z for layer in self.layers]
 
-        error = np.apply_along_axis(self.d_cost, 0, a[-1].T - y)
+        error = self.d_cost(a[-1].T, y)
         delta = np.multiply(self.layers[-1].d_activation(z[-1]).T, error)
         '''L-1,L-3,...,1'''
         #print(delta)
@@ -169,5 +169,5 @@ class nn:
             delta = new_delta
         self.layers[0].update_weights(eta, delta, self.x)
 
-    def error(self, x: np.ndarray, y: np.ndarray):
-        return self.cost(y - self.forward(x))
+    def loss(self, x: np.ndarray, y: np.ndarray):
+        return self.cost(self.forward(x),y)
