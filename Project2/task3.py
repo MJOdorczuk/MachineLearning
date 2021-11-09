@@ -59,8 +59,8 @@ def train_and_test_neural_net_regression(X: np.ndarray, Z: np.ndarray, epochs: i
     plt.plot(returns['eval_losses'], label = "Eval loss")
     plt.legend()
     plt.show()
-    plt.plot(returns['train_r2'], label = "Train R2")
-    plt.plot(returns['eval_r2'], label = "Eval R2")
+    plt.plot(returns['train_measure'], label = "Train R2")
+    plt.plot(returns['eval_measure'], label = "Eval R2")
     plt.legend()
     plt.show()
 

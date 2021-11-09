@@ -125,7 +125,7 @@ class NeuralNetwork:
         """
         self.layers = layers
         self.cost = cost
-        self.d_cost = elementwise_grad(self.cost, 1)
+        self.d_cost = elementwise_grad(self.cost, 0)
 
         self.output_layer = self.layers[-1]
 
@@ -160,7 +160,7 @@ class NeuralNetwork:
         """
         a = [layer.a for layer in self.layers]
         z = [layer.z for layer in self.layers]
-        error = self.d_cost(y, a[-1])
+        error = self.d_cost(a[-1], y)
         delta = np.multiply(self.layers[-1].d_activation(z[-1]), error).T
         '''L-1,L-3,...,1'''
         #print(delta)
@@ -177,5 +177,5 @@ class NeuralNetwork:
     # I want to remove this - Look at trianing loop in task3.py
     def error(self, x: np.ndarray, y: np.ndarray):
         yhat = self.forward(x)
-        print(r2_score(y, yhat))
-        return np.mean(self.cost(y, yhat))
+        print(r2_score(yhat, y))
+        return np.mean(self.cost(yhat, y))

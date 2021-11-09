@@ -50,7 +50,7 @@ def sgd(
     """
     if x.shape != y.shape:
         raise AttributeError(
-            f"Wrong shape of x and y. Shape {x.shape=} != {y.shape=}"
+            f"Wrong shape of x and y. Shape {x.shape} != {y.shape}"
         )
 
     if momentum and alpha >= 1:
@@ -122,4 +122,5 @@ def _random_mini_batch_generator(
         k = random.randint(0, m)
         subset_x = x[k:k + batch_size]
         subset_y = y[k:k + batch_size]
-        yield subset_x, subset_y
+        if subset_x.shape[0] != 0:
+            yield subset_x, subset_y

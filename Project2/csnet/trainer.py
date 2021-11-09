@@ -7,6 +7,8 @@ from autograd import numpy as np
 from csnet.nn import Layer, NeuralNetwork
 from csnet.activation import Activation
 from csnet.loss import mean_squared_error
+from csnet.optim import _random_mini_batch_generator
+
 from sklearn.metrics import r2_score
 
 
@@ -17,10 +19,16 @@ def tune_neural_network(X_train: np.ndarray,
                         epochs:int = 1000, 
                         batch_size:int = 16, 
                         lamb: float = 0,
+                        learning_rates = [3, 2.5, 2, 1.5, 1, 0.5],
                         measure: Callable = r2_score,
                         loss_func: Callable = mean_squared_error,
                         problem_type: str = 'Regression'):
     
+    # TODO
+    """
+    Add some raise error: Not regression or classifiation
+    """
+
     global_best_model = None
     global_best_loss = np.inf
     global_best_measure = -np.inf
@@ -37,7 +45,7 @@ def tune_neural_network(X_train: np.ndarray,
 
     activations = Activation()
 
-    for lr in [3, 2.5, 2, 1.5, 1, 0.5]:
+    for lr in learning_rates:
         print(f"New Learning rate: {lr}")
         for num_layers in range(3):
             for activation in activations.get_all_activations():
@@ -57,7 +65,9 @@ def tune_neural_network(X_train: np.ndarray,
                         layer.weights = np.something_not_gaussian(input_size, neurons_for_a_layer)
                         """
                         layers.append(layer)
-                    if problem_type == 'classification':
+                    
+                    # Output layer
+                    if problem_type == 'Classification':
                         layers.append(Layer(activations.sigmoid, input_size, 1))
                     else:
                         layers.append(Layer(activations.identity, input_size, 1))
@@ -74,42 +84,55 @@ def tune_neural_network(X_train: np.ndarray,
                     best_loss = np.inf
                     best_measure = -np.inf
 
-
                     for epoch in range(epochs):
-                        
-                        # Forward Pass
-                        output = network.forward(X_train)
-                        
-                        # MSE and measure
-                        train_loss = np.mean(network.cost(output, Z_train))
-                        train_losses.append(train_loss)
 
-                        if problem_type == 'classification':
-                            # Classify
-                            output = (output > 0.5).astype(int)
-                        
-                        train_measure = measure(Z_train, output)
-                        train_measure_score.append(train_measure)
-                        
-                        # Backward pass
-                        network.backward(Z_train, lr)
+                        batch_train_losses = []
+                        batch_train_measure = []
+                        # Training
+                        for sub_x, sub_y in _random_mini_batch_generator(X_train, Z_train, batch_size = batch_size):
+                            # Forward Pass
+                            output = network.forward(sub_x)
+                            
+                            # MSE and measure
+                            train_loss = np.mean(network.cost(output, sub_y))
+                            batch_train_losses.append(train_loss)
+
+                            if problem_type == 'Classification':
+                                # Classify
+                                output = (output > 0.5).astype(int)
+                            
+                            train_measure = measure(output, sub_y)
+                            batch_train_measure.append(train_measure)
+                            
+                            # Backward pass
+                            network.backward(sub_y, lr)
+
+                        train_losses.append(np.mean(batch_train_losses))
+                        train_measure_score.append(np.mean(batch_train_measure))
 
                         # Eval
-                        eval_output = network.forward(X_eval)
-                        eval_loss = np.mean(network.cost(eval_output, Z_eval))
-                        eval_losses.append(eval_loss)
-                        if problem_type == 'classification':
-                            eval_output = (eval_output > 0.5).astype(int)
+                        batch_eval_losses = []
+                        batch_eval_measure = []
 
-                        eval_measure = measure(Z_eval, eval_output)
-                        eval_measure_score.append(eval_measure)
+                        for sub_x, sub_y in _random_mini_batch_generator(X_eval, Z_eval, batch_size = batch_size):
+                            eval_output = network.forward(sub_x)
+                            eval_loss = np.mean(network.cost(eval_output, sub_y))
+                            batch_eval_losses.append(eval_loss)
+                            if problem_type == 'Classification':
+                                # Classify
+                                eval_output = (eval_output > 0.5).astype(int)
 
+                            eval_measure = measure(eval_output, sub_y)
+                            batch_eval_measure.append(eval_measure)
+                        
+                        eval_losses.append(np.mean(batch_eval_losses))
+                        eval_measure_score.append(np.mean(batch_eval_measure))
 
                         # Tuning hyperparameters on eval set.
-                        if eval_measure > best_measure:
+                        if eval_measure_score[-1] > best_measure:
                             best_model = copy.deepcopy(network)
-                            best_loss = eval_loss
-                            best_measure = eval_measure
+                            best_loss = eval_losses[-1]
+                            best_measure = eval_measure_score[-1]
 
                     # Tuning hyperparameters on eval set.
                     if best_measure > global_best_measure:
@@ -125,6 +148,23 @@ def tune_neural_network(X_train: np.ndarray,
                         global_best_eval_losses = eval_losses
                         global_best_train_measure = train_measure_score
                         global_best_eval_measure = eval_measure_score
+
+                        # TODO Remove this, this is cuz im impatient
+                        if best_measure == 1:
+                            returns = {
+                                'MSE': global_best_loss,
+                                str(measure.__name__): global_best_measure,
+                                'model': global_best_model,
+                                'activation': global_best_activation,
+                                'lr': global_best_lr,
+                                'layer_neurons': global_best_neuron_combo,
+                                'train_losses': global_best_train_losses,
+                                'eval_losses': global_best_eval_losses,
+                                'train_measure': global_best_train_measure,
+                                'eval_measure': global_best_eval_measure
+                            }
+
+                            return returns
 
     returns = {
         'MSE': global_best_loss,

@@ -15,5 +15,5 @@ def binary_cross_entropy(yhat: np.ndarray, y: np.ndarray, lamb: float = 0, weigh
 
     return - 1/n * np.sum(y * np.log(yhat) + (1-y) * np.log(1 - yhat)) + (lamb / n) * np.sum(np.square(weights))
 
-def mean_squared_error(y: np.ndarray, yhat:np.ndarray):
-    return np.mean(np.square(y - yhat), axis=0) 
+def mean_squared_error(yhat: np.ndarray, y:np.ndarray):
+    return np.mean(np.square(yhat - y), axis=0) 
