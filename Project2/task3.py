@@ -193,7 +193,7 @@ def train_and_test_neural_net(X: np.ndarray, Z: np.ndarray, epochs: int = 1000, 
 
 if __name__ == '__main__':
     num_points = 100
-    num_epochs = 1000
+    num_epochs = 500
     noise = 0.001
     
     x = np.random.uniform(0, 1, num_points)
@@ -202,4 +202,4 @@ if __name__ == '__main__':
     X = np.column_stack((x,y))
     Z = FrankeFunction(x, y, noise).reshape(-1,1)
     
-    train_and_test_neural_net(X, Z)
+    train_and_test_neural_net(X, Z, epochs=num_epochs)
