@@ -5,12 +5,14 @@ from autograd import grad, elementwise_grad
 from sklearn.metrics import r2_score
 
 
-def mean_squared_error(x):
-    return np.mean(np.square(x))
+
+def mean_squared_error(y, yhat):
+    return np.mean(np.square(y-yhat), axis=0)
 
 '''Example, to be removed when real optimizer developed.
 some_counter is just an example argument showing, how the evolving of the optimizer should proceed'''
 def SGD(w,b,delta,a,eta,some_counter):
+    #from IPython import embed; embed()
     new_weights = w - eta * np.dot(delta, a).T / delta.shape[1]
     new_biases = b - eta * np.mean(delta, 1)
     new_opt = lambda w,b,delta,a,eta: SGD(w,b,delta,a,eta,some_counter+1)
@@ -20,7 +22,7 @@ def init_SGD(w,b,delta,a,eta):
     return SGD(w,b,delta,a,eta,0)
 
 
-class layer:
+class Layer:
     def __init__(self, activ: Callable[[float],float], input_size: int, output_size: int, opt = init_SGD) -> None:
         """Feed Forward Neural Network layer implementation, representing the net of connections between two layers.
 
@@ -37,7 +39,7 @@ class layer:
 
         """
         self.activation = activ
-        self.d_activation = np.vectorize(grad(activ))
+        self.d_activation = elementwise_grad(activ)
         self.weights = np.random.normal(size=(input_size,output_size))
         self.bias = np.zeros((output_size,))
         self.opt = opt
@@ -109,8 +111,8 @@ class layer:
         """
         self.weights, self.bias, self.opt = self.opt(self.weights, self.bias, delta, a, eta)
 
-class nn:
-    def __init__(self, layers: List[layer], cost: Callable[[np.ndarray],float] = mean_squared_error) -> None:
+class NeuralNetwork:
+    def __init__(self, layers: List[Layer], cost: Callable[[np.ndarray],float] = mean_squared_error) -> None:
         """Feed Forward Neural Network implementation.
 
         Parameters
@@ -123,7 +125,9 @@ class nn:
         """
         self.layers = layers
         self.cost = cost
-        self.d_cost = elementwise_grad(self.cost)
+        self.d_cost = elementwise_grad(self.cost, 1)
+
+        self.output_layer = self.layers[-1]
 
     def forward(self, x: np.ndarray) -> np.ndarray:
         """Neural network output after feeding to the activation function.
@@ -144,7 +148,7 @@ class nn:
             y = layer.forward(y)
         return y
 
-    def back(self, y: np.ndarray, eta: float) -> None:
+    def backward(self, y: np.ndarray, eta: float) -> None:
         """Back propagation implementation based on the last forward feed and the expected values:
 
         Parameters
@@ -156,18 +160,22 @@ class nn:
         """
         a = [layer.a for layer in self.layers]
         z = [layer.z for layer in self.layers]
-
-        error = np.apply_along_axis(self.d_cost, 0, a[-1].T - y)
-        delta = np.multiply(self.layers[-1].d_activation(z[-1]).T, error)
+        error = self.d_cost(y, a[-1])
+        delta = np.multiply(self.layers[-1].d_activation(z[-1]), error).T
         '''L-1,L-3,...,1'''
         #print(delta)
         for l in np.arange(len(self.layers)-1,0,-1):
             layer = self.layers[l]
             '''delta_j^l=sum_k delta_k^{l+1} w_{kj}^{l+1}f'(z_j^l)'''
+            #from IPython import embed; embed()
+
             new_delta = layer.back_error(z[l-1],delta, self.layers[l-1].d_activation)
             layer.update_weights(eta, delta, a[l-1])
             delta = new_delta
         self.layers[0].update_weights(eta, delta, self.x)
 
+    # I want to remove this - Look at trianing loop in task3.py
     def error(self, x: np.ndarray, y: np.ndarray):
-        return self.cost(y - self.forward(x))
+        yhat = self.forward(x)
+        print(r2_score(y, yhat))
+        return np.mean(self.cost(y, yhat))
