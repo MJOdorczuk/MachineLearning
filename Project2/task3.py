@@ -60,6 +60,12 @@ def tune_neural_network(X_train: np.ndarray,
                     for neurons_for_a_layer in neuron_combination:
                         layer = Layer(activation, input_size, neurons_for_a_layer)
                         input_size = neurons_for_a_layer
+                        """
+                        # TODO
+                        # test different ways of implementing weights
+                        Something like:
+                        layer.weights = np.something_not_gaussian(input_size, neurons_for_a_layer)
+                        """
                         layers.append(layer)
                     layers.append(Layer(activations.identity, input_size, 1))
 
