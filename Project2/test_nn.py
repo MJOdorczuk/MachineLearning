@@ -19,27 +19,22 @@ def FrankeFunction(x, y, sigma = 0):
 
     return (term1 + term2 + term3 + term4) + sigma*noise
 
-def sincos(x,y,sigma = 0):
-    return x * y
-
-num_points = 10
-num_epochs = 100
+num_points = 100
+num_epochs = 1000
 noise = 0.001
-
-
 
 a = Activation()
 def id(x):
     return x
 
-l1 = layer(a.relu, 2, 8)
-l2 = layer(a.sigmoid, 8, 16)
-l3 = layer(a.relu, 16, 32)
-l4 = layer(id, 32, 1)
+l1 = layer(a.relu, 2, 4)
+l2 = layer(a.sigmoid, 4, 8)
+l3 = layer(a.relu, 8, 16)
+l4 = layer(id, 16, 1)
 layers = [l1, l2, l3, l4]
 n = nn(layers)
 
-merr = 0
+
 loss = []
 
 fig = plt.figure()
