@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def accuracy(pred: np.ndarray, true: np.ndarray) -> int:
+def accuracy(true: np.ndarray, pred: np.ndarray) -> int:
     """
     Calculates accuracy of classification
     """

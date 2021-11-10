@@ -92,20 +92,23 @@ def tune_neural_network(X_train: np.ndarray,
                         for sub_x, sub_y in _random_mini_batch_generator(X_train, Z_train, batch_size = batch_size):
                             # Forward Pass
                             output = network.forward(sub_x)
-                            
                             # MSE and measure
-                            train_loss = np.mean(network.cost(output, sub_y))
+                            train_loss = np.mean(network.cost(sub_y, output))
                             batch_train_losses.append(train_loss)
+
+                            # Backward pass
+                            network.backward(sub_y, lr)
 
                             if problem_type == 'Classification':
                                 # Classify
                                 output = (output > 0.5).astype(int)
                             
-                            train_measure = measure(output, sub_y)
+                            if problem_type == 'Regression':
+                                if sub_y.shape[0] == 1:
+                                    # R2 scores cannot handle batch size of 1.
+                                    continue
+                            train_measure = measure(sub_y, output)
                             batch_train_measure.append(train_measure)
-                            
-                            # Backward pass
-                            network.backward(sub_y, lr)
 
                         train_losses.append(np.mean(batch_train_losses))
                         train_measure_score.append(np.mean(batch_train_measure))
@@ -116,13 +119,17 @@ def tune_neural_network(X_train: np.ndarray,
 
                         for sub_x, sub_y in _random_mini_batch_generator(X_eval, Z_eval, batch_size = batch_size):
                             eval_output = network.forward(sub_x)
-                            eval_loss = np.mean(network.cost(eval_output, sub_y))
+                            eval_loss = np.mean(network.cost(sub_y, eval_output))
                             batch_eval_losses.append(eval_loss)
                             if problem_type == 'Classification':
                                 # Classify
                                 eval_output = (eval_output > 0.5).astype(int)
-
-                            eval_measure = measure(eval_output, sub_y)
+                            
+                            if problem_type == 'Regression':
+                                if sub_y.shape[0] == 1:
+                                    # R2 scores cannot handle batch size of 1.
+                                    continue
+                            eval_measure = measure(sub_y, eval_output)
                             batch_eval_measure.append(eval_measure)
                         
                         eval_losses.append(np.mean(batch_eval_losses))
@@ -148,7 +155,7 @@ def tune_neural_network(X_train: np.ndarray,
                         global_best_eval_losses = eval_losses
                         global_best_train_measure = train_measure_score
                         global_best_eval_measure = eval_measure_score
-
+                        
                         # TODO Remove this, this is cuz im impatient
                         if best_measure == 1:
                             returns = {

@@ -74,10 +74,10 @@ class LogisticRegression:
                 continue
             output = self.forward(sub_x)
             predictions = self.predict(sub_x)
-            loss = self.loss_func(output, sub_y, lamb, self.weights)
+            loss = self.loss_func(sub_y, output, lamb, self.weights)
             losses.append(loss)
 
-            acc = accuracy(predictions, sub_y)
+            acc = accuracy(sub_y, predictions)
             accuracies.append(acc)
         
         return np.mean(losses), np.mean(accuracies)

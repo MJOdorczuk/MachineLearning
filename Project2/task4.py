@@ -35,9 +35,9 @@ def train_and_test_neural_net_classification(X: np.ndarray, Y: np.ndarray, epoch
     # Final test
     best_model = returns['model']
     output = best_model.forward(X_test)
-    test_loss = np.mean(best_model.cost(output, y_test))
+    test_loss = np.mean(best_model.cost(y_test, output))
     predictions = (output > 0.5).astype(int)
-    test_acc = accuracy(predictions, y_test)
+    test_acc = accuracy(y_test, predictions)
 
     print(f"Neural network final test on best model: BCE: {test_loss}, Accuracy: {test_acc}")
 

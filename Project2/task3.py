@@ -49,7 +49,7 @@ def train_and_test_neural_net_regression(X: np.ndarray, Z: np.ndarray, epochs: i
     # Final test
     best_model = returns['model']
     output = best_model.forward(X_test)
-    test_loss = np.mean(best_model.cost(output, z_test))
+    test_loss = np.mean(best_model.cost(z_test, output))
     test_r2 = r2_score(z_test, output)
 
     print(f"Neural network final test on best model: MSE: {test_loss}, R2: {test_r2}")
