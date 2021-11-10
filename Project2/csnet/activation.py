@@ -10,6 +10,12 @@ class Activation:
     def __init__(self, alpha: float = 1e-3) -> None:
         self.alpha = alpha
 
+    def identity(self, x:np.ndarray) -> np.ndarray:
+        return x
+
+    def identity_grad(self, x:np.ndarray) -> np.ndarray:
+        return np.where(x != 0, 1, 0)
+
     def sigmoid(self, x: np.ndarray) -> np.ndarray:
         return 1.0/(1.0 + np.exp(-x))
 
