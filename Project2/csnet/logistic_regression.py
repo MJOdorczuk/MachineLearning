@@ -74,7 +74,7 @@ class LogisticRegression:
                 continue
             output = self.forward(sub_x)
             predictions = self.predict(sub_x)
-            loss = self.loss_func(sub_y, output, lamb, self.weights)
+            loss = self.loss_func(sub_y, output, lamb, self.weights, self.bias)
             losses.append(loss)
 
             acc = accuracy(sub_y, predictions)
@@ -125,7 +125,7 @@ class LogisticRegression:
         yhat = yhat.ravel()
         n = y.shape[0]
 
-        return - 1/n * anp.sum(y * anp.log(yhat) + (1-y) * anp.log(1 - yhat)) + (lamb / n) * np.sum(np.square(weights))
+        return - 1/n * anp.sum(y * anp.log(yhat) + (1-y) * anp.log(1 - yhat)) + (lamb / n) * (np.sum(np.square(weights)) + np.sum(np.square(bias)))
 
     def single_step(self, x: np.ndarray, y: np.ndarray, epochs: int = 50, lr: float = 0.01, lamb: float = 0.0, batch_size: int = 1):
         """

@@ -1,29 +1,12 @@
 from autograd import numpy as np
 from typing import Callable
 from typing import List
-from autograd import grad, elementwise_grad
-from sklearn.metrics import r2_score
+from autograd import elementwise_grad
 
-
-
-def mean_squared_error(y, yhat):
-    return np.mean(np.square(y-yhat), axis=0)
-
-'''Example, to be removed when real optimizer developed.
-some_counter is just an example argument showing, how the evolving of the optimizer should proceed'''
-def SGD(w,b,delta,a,eta,some_counter):
-    #from IPython import embed; embed()
-    new_weights = w - eta * np.dot(delta, a).T / delta.shape[1]
-    new_biases = b - eta * np.mean(delta, 1)
-    new_opt = lambda w,b,delta,a,eta: SGD(w,b,delta,a,eta,some_counter+1)
-    return new_weights, new_biases, new_opt
-
-def init_SGD(w,b,delta,a,eta):
-    return SGD(w,b,delta,a,eta,0)
-
+from csnet.optim import SGD
 
 class Layer:
-    def __init__(self, activ: Callable[[float],float], input_size: int, output_size: int, opt = init_SGD) -> None:
+    def __init__(self, activ: Callable[[float],float], input_size: int, output_size: int, opt: SGD) -> None:
         """Feed Forward Neural Network layer implementation, representing the net of connections between two layers.
 
         Parameters
@@ -40,9 +23,13 @@ class Layer:
         """
         self.activation = activ
         self.d_activation = elementwise_grad(activ)
+        self.input_size = input_size
+        self.output_size = output_size
         self.weights = np.random.normal(size=(input_size,output_size))
         self.bias = np.zeros((output_size,))
         self.opt = opt
+        self.z = None
+        self.a = None
 
     def pre_activation(self, input: np.ndarray) -> np.ndarray:
         """Layer output before feeding to the activation function.
@@ -96,23 +83,23 @@ class Layer:
         """
         return np.multiply(f_prime(z).T, np.dot(self.weights, delta))
 
-    def update_weights(self, eta: float, delta: np.ndarray, a: np.ndarray) -> None:
+    def update_weight(self, weight_grad, bias_grad) -> None:
         """Update weights using the optimizer based on the learning rate and the backwards propagated error of this layer.
 
         Parameters
         ----------
-        eta   :
-            Learning rate.
-        delta   :
-            Backwards propagated error for the current layer.
-        a  :
-            Output of the current layer with the error delta
+        weight_grad:
+            Gradients for the weights.
+        bias_grad:
+            Gradient for the bias
 
         """
-        self.weights, self.bias, self.opt = self.opt(self.weights, self.bias, delta, a, eta)
+
+        self.weights = self.opt.step(self.weights, weight_grad)
+        self.bias = self.opt.step(self.bias, bias_grad, True)
 
 class NeuralNetwork:
-    def __init__(self, layers: List[Layer], cost: Callable[[np.ndarray],float] = mean_squared_error) -> None:
+    def __init__(self, layers: List[Layer], cost: Callable[[np.ndarray],float]) -> None:
         """Feed Forward Neural Network implementation.
 
         Parameters
@@ -129,13 +116,14 @@ class NeuralNetwork:
 
         self.output_layer = self.layers[-1]
 
+        
     def forward(self, x: np.ndarray) -> np.ndarray:
         """Neural network output after feeding to the activation function.
 
         Parameters
         ----------
-        input   :
-            Data fed to the input neurons
+        x   :
+            Input data
 
         Returns
         -------
@@ -148,34 +136,64 @@ class NeuralNetwork:
             y = layer.forward(y)
         return y
 
-    def backward(self, y: np.ndarray, eta: float) -> None:
+    def backward(self, y: np.ndarray, lamb: float = 0) -> None:
         """Back propagation implementation based on the last forward feed and the expected values:
 
         Parameters
         ----------
         y   :
             Expected output for last forward feed.
-        eta   :
-            Learning rate.
-        """
-        a = [layer.a for layer in self.layers]
-        z = [layer.z for layer in self.layers]
-        error = self.d_cost(y, a[-1])
-        delta = np.multiply(self.layers[-1].d_activation(z[-1]), error).T
-        '''L-1,L-3,...,1'''
-        #print(delta)
-        for l in np.arange(len(self.layers)-1,0,-1):
-            layer = self.layers[l]
-            '''delta_j^l=sum_k delta_k^{l+1} w_{kj}^{l+1}f'(z_j^l)'''
-            #from IPython import embed; embed()
+        lamb:
+            Regularization factor.
+        """        
 
-            new_delta = layer.back_error(z[l-1],delta, self.layers[l-1].d_activation)
-            layer.update_weights(eta, delta, a[l-1])
-            delta = new_delta
-        self.layers[0].update_weights(eta, delta, self.x)
+        last_layer = self.output_layer
 
-    # I want to remove this - Look at trianing loop in task3.py
-    def error(self, x: np.ndarray, y: np.ndarray):
-        yhat = self.forward(x)
-        print(r2_score(yhat, y))
-        return np.mean(self.cost(y, yhat))
+        # Calculate delta for last layer
+        delta_output = last_layer.d_activation(last_layer.z) * self.d_cost(y,last_layer.a)
+        deltas = [delta_output]
+
+        # No hidden layers:
+        if len(self.layers) == 1:
+            weights_grad_output = np.matmul(self.x.T,delta_output)
+            bias_grad_output = np.sum(delta_output, axis = 0)
+
+            # Regularization
+            if lamb > 0:
+                weights_grad_output += lamb * self.layers[-1].weights
+
+            # update_weights last layer:
+            self.layers[-1].update_weight(weights_grad_output, bias_grad_output)
+
+        else:
+            # Gradients for last layer
+            weights_grad_output = np.matmul(self.layers[-2].a.T,delta_output)
+            bias_grad_output = np.sum(delta_output, axis = 0)
+
+            # Regularization
+            if lamb > 0:
+                weights_grad_output += lamb * self.layers[-1].weights
+
+            # update_weights last layer:
+            self.layers[-1].update_weight(weights_grad_output, bias_grad_output)
+
+            # Delta second last
+            delta_second_last = np.matmul(deltas[-1], self.layers[-1].weights.T) * self.layers[-2].d_activation(self.layers[-2].z)
+            deltas.append(delta_second_last)
+
+            for l in np.arange(len(self.layers)-2,1,-1):
+                # Gradient of the current layer
+                weights_grad = np.matmul(self.layers[l-1].a.T, deltas[-1])
+                bias_grad = np.sum(deltas[-1], axis = 0)
+                # Regularization
+                if lamb > 0:
+                    weights_grad += lamb * self.layers[l].weights
+                
+                # Calculate next delta term
+                next_delta = np.matmul(deltas[-1], self.layers[l].weights.T) * self.layers[l-1].d_activation(self.layers[l-1].z)
+                deltas.append(next_delta)
+
+                # Update weights
+                self.layers[l].update_weight(weights_grad, bias_grad)
+        
+        

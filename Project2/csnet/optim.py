@@ -5,6 +5,53 @@ from typing import Generator
 
 import numpy as np
 
+class SGD():
+
+    def __init__(self,
+            lr: float = 0.01,
+            silent: bool = True,
+            use_momentum: bool = False,
+            alpha: float = 0.5,
+        ) -> None:
+
+        self.lr = lr
+        self.silent = silent
+        self.use_momentum = use_momentum
+        self.alpha = alpha
+        self.momentum_weights = 0
+        self.momentum_bias = 0
+
+    def step(self, weights: np.ndarray, grad: np.ndarray, bias = False) -> np.ndarry:
+        if self.use_momentum:
+            return self.momentum_step(weights,grad, bias)
+        else:
+            return self.sgd_step(weights,grad)
+    
+    def sgd_step(self, 
+            weights: np.ndarray,
+            grad: np.ndarray,
+        ) -> np.ndarray:
+
+        updated_weights = weights - self.lr * grad
+
+        return updated_weights
+
+    def momentum_step(self,
+            weights: np.ndarray,
+            grad: np.ndarray,
+            bias: bool = False
+        ) -> np.ndarray:
+        """One optimization step using momentum SGT."""
+        if bias:
+            self.momentum_bias = self.alpha * self.momentum_bias + (1 - self.alpha) * grad
+            updated_weights = weights - self.lr * self.momentum_bias
+        else:
+            self.momentum_weights = self.alpha * self.momentum_weights + (1 - self.alpha) * grad
+            updated_weights = weights - self.lr * self.momentum_weights
+
+        return updated_weights
+
+    
 
 def sgd(
     x: np.ndarray,
@@ -84,6 +131,8 @@ def sgd(
     return theta
 
 
+
+
 def _momentum_sgd_step(
     x: np.ndarray,
     y: np.ndarray,
@@ -116,11 +165,13 @@ def _random_mini_batch_generator(
     batch_size: int,
 ) -> Generator[tuple[np.ndarray, ...], None, None]:
     """Generates mini-batches from `x` and `y`."""
-    mini_batches = x.shape[0] // batch_size
+    mini_batches = x.shape[0] // batch_size +1
     m = x.shape[0]
     for _ in range(mini_batches):
-        k = random.randint(0, m)
-        subset_x = x[k:k + batch_size]
-        subset_y = y[k:k + batch_size]
+
+        # With replacement as done in the lectures, but also with a constant batch size.
+        k = np.random.randint(m, size = batch_size)
+        subset_x = x[k]
+        subset_y = y[k]
         if subset_x.shape[0] != 0:
             yield subset_x, subset_y

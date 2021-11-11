@@ -5,7 +5,7 @@ from typing import Callable
 from autograd import numpy as np
 import matplotlib.pyplot as plt
 
-from csnet.trainer import tune_neural_network
+from csnet.trainer import tune_neural_network, train_pytorch_net
 from sklearn.metrics import r2_score
 
 from sklearn.model_selection import train_test_split
@@ -44,7 +44,7 @@ def train_and_test_neural_net_regression(X: np.ndarray, Z: np.ndarray, epochs: i
     z_test = scaler_output.transform(z_test)
 
     
-    returns = tune_neural_network(X_train, z_train, X_eval, z_eval, epochs=epochs)
+    returns = tune_neural_network(X_train, z_train, X_eval, z_eval, epochs=epochs, batch_size = batch_size)
 
     # Final test
     best_model = returns['model']
@@ -54,13 +54,21 @@ def train_and_test_neural_net_regression(X: np.ndarray, Z: np.ndarray, epochs: i
 
     print(f"Neural network final test on best model: MSE: {test_loss}, R2: {test_r2}")
 
+    # Testing against Pytorch
+    train_losses, train_measures, eval_losses, eval_measures, test_losses, test_measure = train_pytorch_net(best_model, X, Z, returns['lr'], epochs, batch_size)
+
+
     # Plotting losses and R2
     plt.plot(returns['train_losses'], label = "Train loss")
     plt.plot(returns['eval_losses'], label = "Eval loss")
+    plt.plot(train_losses, label = "Torch Train loss")
+    plt.plot(eval_losses, label = "Torch Eval loss")
     plt.legend()
     plt.show()
     plt.plot(returns['train_measure'], label = "Train R2")
     plt.plot(returns['eval_measure'], label = "Eval R2")
+    plt.plot(train_measures, label = "Torch Train R2")
+    plt.plot(eval_measures, label = "Torch Eval R2")
     plt.legend()
     plt.show()
 
@@ -69,7 +77,7 @@ def train_and_test_neural_net_regression(X: np.ndarray, Z: np.ndarray, epochs: i
 
 if __name__ == '__main__':
     num_points = 100
-    num_epochs = 500
+    num_epochs = 100
     noise = 0.001
     
     x = np.random.uniform(0, 1, num_points)

@@ -29,8 +29,8 @@ def train_and_test_neural_net_classification(X: np.ndarray, Y: np.ndarray, epoch
     X_eval = scaler_input.transform(X_eval)
     X_test = scaler_input.transform(X_test)
 
-    learning_rates = [1.5, 1, 0.5, 0.1, 0.05]
-    returns = tune_neural_network(X_train, y_train, X_eval, y_eval, epochs=epochs, learning_rates = learning_rates, loss_func = binary_cross_entropy, measure = accuracy, problem_type = 'Classification')
+    #learning_rates = [1.5, 1, 0.5, 0.1, 0.05]
+    returns = tune_neural_network(X_train, y_train, X_eval, y_eval, epochs=epochs, loss_func = binary_cross_entropy, measure = accuracy, problem_type = 'Classification')
 
     # Final test
     best_model = returns['model']
@@ -55,7 +55,7 @@ def train_and_test_neural_net_classification(X: np.ndarray, Y: np.ndarray, epoch
 
 
 if __name__ == '__main__':
-    num_epochs = 200
+    num_epochs = 100
     
     x, y = load_breast_cancer_data()
     
