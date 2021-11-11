@@ -74,7 +74,7 @@ class LogisticRegression:
                 continue
             output = self.forward(sub_x)
             predictions = self.predict(sub_x)
-            loss = self.loss_func(sub_y, output, lamb, self.weights, self.bias)
+            loss = self.loss_func(sub_y, output, lamb, self.weights)
             losses.append(loss)
 
             acc = accuracy(sub_y, predictions)
