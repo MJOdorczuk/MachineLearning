@@ -17,10 +17,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 
-def tune_neural_network(X_train: np.ndarray, 
-                        Z_train: np.ndarray, 
-                        X_eval: np.ndarray, 
-                        Z_eval: np.ndarray, 
+def tune_neural_network(X: np.ndarray, 
+                        z: np.ndarray, 
                         epochs:int = 1000, 
                         batch_size:int = 16, 
                         lamb: float = 0,
@@ -34,6 +32,9 @@ def tune_neural_network(X_train: np.ndarray,
     """
     Add some raise error: Not regression or classifiation
     """
+
+    X_train, X_eval, X_test = X
+    Z_train, Z_eval, Z_test = z
 
     global_best_model = None
     global_best_loss = np.inf
@@ -149,7 +150,7 @@ def tune_neural_network(X_train: np.ndarray,
 
                         # Tuning hyperparameters on eval set.
                         if best_measure > global_best_measure:
-                            print(f"New best {measure.__name__}: {best_measure}, {loss_func.__name__}: {best_loss}, learning rate: {lr} with {neuron_combination} and activation {activation.__name__}")
+                            print(f"New best {measure.__name__}: {best_measure}, {loss_func.__name__}: {best_loss}, learning rate: {lr}, lamb: {lamb} with {neuron_combination} and activation {activation.__name__}")
                             global_best_model = best_model
                             global_best_loss = best_loss
                             global_best_measure = best_measure
@@ -173,14 +174,16 @@ def tune_neural_network(X_train: np.ndarray,
                             plt.legend()
                             plt.show()
                             """
+                            """
                             # TODO Remove this, this is cuz im impatient
-                            if best_measure >= 0.90:
+                            if best_measure >= 0.95:
                                 returns = {
-                                    'MSE': global_best_loss,
-                                    str(measure.__name__): global_best_measure,
+                                    'best_Loss': global_best_loss,
+                                    'best_'+str(measure.__name__): global_best_measure,
                                     'model': global_best_model,
                                     'activation': global_best_activation,
                                     'lr': global_best_lr,
+                                    'lamb': global_best_lamb,
                                     'layer_neurons': global_best_neuron_combo,
                                     'train_losses': global_best_train_losses,
                                     'eval_losses': global_best_eval_losses,
@@ -189,6 +192,7 @@ def tune_neural_network(X_train: np.ndarray,
                                 }
 
                                 return returns
+                            """
                     """
                     plt.plot(global_best_train_losses, label = "Train loss")
                     plt.plot(global_best_eval_losses, label = "Eval loss")
@@ -220,23 +224,26 @@ def tune_neural_network(X_train: np.ndarray,
 def train_pytorch_net(custom_model, X, z, lr=0.1, epochs=20, batch_size = 16, lamb = 0, measure = r2_score):
     """Make a simple pytorch network to compare with."""
 
-    X_train, X_test, z_train, z_test = train_test_split(X, z, test_size=0.2)
-    # Split train set into train and eval
-    X_train, X_eval, z_train, z_eval = train_test_split(X_train, z_train, test_size=0.25)
+    X_train, X_eval, X_test = X
+    z_train, z_eval, z_test = z
 
-    # Scale data by subtracting mean
-    scaler_input = StandardScaler(with_std = False)
-    scaler_input.fit(X_train)
-    scaler_output = StandardScaler(with_std = False)
-    scaler_output.fit(z_train)
+    X_train = torch.as_tensor((X_train), dtype=torch.float)
+    X_eval = torch.as_tensor((X_eval), dtype=torch.float)
+    X_test = torch.as_tensor((X_test), dtype=torch.float)
 
-    X_train = torch.as_tensor(scaler_input.transform(X_train), dtype=torch.float)
-    X_eval = torch.as_tensor(scaler_input.transform(X_eval), dtype=torch.float)
-    X_test = torch.as_tensor(scaler_input.transform(X_test), dtype=torch.float)
+    # Regression
+    if custom_model.cost.__name__ == 'mean_squared_error':
+        scaler_output = StandardScaler(with_std = False)
+        scaler_output.fit(z_train)
 
-    z_train = torch.as_tensor(scaler_output.transform(z_train), dtype=torch.float)
-    z_eval = torch.as_tensor(scaler_output.transform(z_eval), dtype=torch.float)
-    z_test = torch.as_tensor(scaler_output.transform(z_test), dtype=torch.float)
+        z_train = torch.as_tensor((z_train), dtype=torch.float)
+        z_eval = torch.as_tensor((z_eval), dtype=torch.float)
+        z_test = torch.as_tensor((z_test), dtype=torch.float)
+
+    else:
+        z_train = torch.reshape(torch.as_tensor(z_train, dtype=torch.float), (-1,1))
+        z_eval = torch.reshape(torch.as_tensor(z_eval, dtype=torch.float), (-1,1))
+        z_test = torch.reshape(torch.as_tensor(z_test, dtype=torch.float), (-1,1))
 
 
     modules = []
@@ -321,4 +328,4 @@ def train_pytorch_net(custom_model, X, z, lr=0.1, epochs=20, batch_size = 16, la
         pred = (pred >= 0.5)
     test_measure = measure(z_test.detach().numpy(), pred.detach().numpy())
 
-    return train_losses, train_measures, eval_losses, eval_measures, test_loss, test_measure
+    return model, train_losses, train_measures, eval_losses, eval_measures, test_loss, test_measure

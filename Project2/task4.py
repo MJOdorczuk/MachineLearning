@@ -5,7 +5,7 @@ from typing import Callable
 from autograd import numpy as np
 import matplotlib.pyplot as plt
 
-from csnet.trainer import tune_neural_network
+from csnet.trainer import tune_neural_network, train_pytorch_net
 from csnet.loss import binary_cross_entropy
 from csnet.metrics import accuracy
 from csnet.data import load_breast_cancer_data
@@ -29,8 +29,11 @@ def train_and_test_neural_net_classification(X: np.ndarray, Y: np.ndarray, epoch
     X_eval = scaler_input.transform(X_eval)
     X_test = scaler_input.transform(X_test)
 
+    X = [X_train, X_eval, X_test]
+    y = [y_train, y_eval, y_test]
+
     #learning_rates = [1.5, 1, 0.5, 0.1, 0.05]
-    returns = tune_neural_network(X_train, y_train, X_eval, y_eval, epochs=epochs, loss_func = binary_cross_entropy, measure = accuracy, problem_type = 'Classification')
+    returns = tune_neural_network(X, y, epochs=epochs, loss_func = binary_cross_entropy, measure = accuracy, problem_type = 'Classification')
 
     # Final test
     best_model = returns['model']
@@ -41,13 +44,20 @@ def train_and_test_neural_net_classification(X: np.ndarray, Y: np.ndarray, epoch
 
     print(f"Neural network final test on best model: BCE: {test_loss}, Accuracy: {test_acc}")
 
+    model, train_losses, train_measures, eval_losses, eval_measures, test_losses, test_measure = train_pytorch_net(best_model, X, y, returns['lr'], epochs, batch_size)
+    print(f"Torch Neural network final test on best model: BCE: {test_losses}, Accuracy: {test_measure}")
+
     # Plotting losses and R2
     plt.plot(returns['train_losses'], label = "Train loss")
     plt.plot(returns['eval_losses'], label = "Eval loss")
+    plt.plot(train_losses, label = 'Torch Train loss')
+    plt.plot(eval_losses, label = "Torch Eval loss")
     plt.legend()
     plt.show()
     plt.plot(returns['train_measure'], label = "Train Acc")
     plt.plot(returns['eval_measure'], label = "Eval Acc")
+    plt.plot(train_measures, label = "Torch Train Acc")
+    plt.plot(eval_measures, label = 'Torch eval Acc')
     plt.legend()
     plt.show()
 

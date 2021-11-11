@@ -43,8 +43,10 @@ def train_and_test_neural_net_regression(X: np.ndarray, Z: np.ndarray, epochs: i
     z_eval = scaler_output.transform(z_eval)
     z_test = scaler_output.transform(z_test)
 
-    
-    returns = tune_neural_network(X_train, z_train, X_eval, z_eval, epochs=epochs, batch_size = batch_size)
+    X = [X_train, X_eval, X_test]
+    Z = [z_train, z_eval, z_test]
+
+    returns = tune_neural_network(X, Z, epochs=epochs, batch_size = batch_size)
 
     # Final test
     best_model = returns['model']
@@ -55,7 +57,8 @@ def train_and_test_neural_net_regression(X: np.ndarray, Z: np.ndarray, epochs: i
     print(f"Neural network final test on best model: MSE: {test_loss}, R2: {test_r2}")
 
     # Testing against Pytorch
-    train_losses, train_measures, eval_losses, eval_measures, test_losses, test_measure = train_pytorch_net(best_model, X, Z, returns['lr'], epochs, batch_size)
+    model, train_losses, train_measures, eval_losses, eval_measures, test_losses, test_measure = train_pytorch_net(best_model, X, Z, returns['lr'], epochs, batch_size)
+    print(f"Torch Neural network final test on best model: MSE: {test_losses}, R2: {test_measure}")
 
 
     # Plotting losses and R2
