@@ -6,24 +6,22 @@ from sklearn.metrics import r2_score
 
 
 
-def mean_squared_error(y, yhat):
-    return np.mean(np.square(y-yhat), axis=0)
+def mean_error(y, yhat):
+    return np.mean(np.abs(y-yhat), axis=0)
 
-'''Example, to be removed when real optimizer developed.
-some_counter is just an example argument showing, how the evolving of the optimizer should proceed'''
-def SGD(w,b,delta,a,eta,some_counter):
+def SGD(w,b,delta,a,eta,lamba):
     #from IPython import embed; embed()
-    new_weights = w - eta * np.dot(delta, a).T / delta.shape[1]
+    new_weights = (1-lamba) * w - eta * np.dot(delta, a).T / delta.shape[1]
     new_biases = b - eta * np.mean(delta, 1)
-    new_opt = lambda w,b,delta,a,eta: SGD(w,b,delta,a,eta,some_counter+1)
+    new_opt = lambda w,b,delta,a,eta: SGD(w,b,delta,a,eta,lamba)
     return new_weights, new_biases, new_opt
 
-def init_SGD(w,b,delta,a,eta):
-    return SGD(w,b,delta,a,eta,0)
+def init_SGD(lamba=0.0):
+    return lambda w,b,delta,a,eta: SGD(w,b,delta,a,eta,lamba)
 
 
 class Layer:
-    def __init__(self, activ: Callable[[float],float], input_size: int, output_size: int, opt = init_SGD) -> None:
+    def __init__(self, activ: Callable[[float],float], input_size: int, output_size: int, opt) -> None:
         """Feed Forward Neural Network layer implementation, representing the net of connections between two layers.
 
         Parameters
@@ -173,9 +171,3 @@ class NeuralNetwork:
             layer.update_weights(eta, delta, a[l-1])
             delta = new_delta
         self.layers[0].update_weights(eta, delta, self.x)
-
-    # I want to remove this - Look at trianing loop in task3.py
-    def error(self, x: np.ndarray, y: np.ndarray):
-        yhat = self.forward(x)
-        print(r2_score(y, yhat))
-        return np.mean(self.cost(y, yhat))

@@ -10,17 +10,17 @@ from csnet.loss import mean_squared_error
 from sklearn.metrics import r2_score
 
 
-def tune_neural_network(X_train: np.ndarray, 
-                        Z_train: np.ndarray, 
-                        X_eval: np.ndarray, 
-                        Z_eval: np.ndarray, 
-                        epochs:int = 1000, 
-                        batch_size:int = 16, 
+def tune_neural_network(X_train: np.ndarray,
+                        Z_train: np.ndarray,
+                        X_eval: np.ndarray,
+                        Z_eval: np.ndarray,
+                        epochs:int = 1000,
+                        batch_size:int = 16,
                         lamb: float = 0,
                         measure: Callable = r2_score,
                         loss_func: Callable = mean_squared_error,
                         problem_type: str = 'Regression'):
-    
+
     global_best_model = None
     global_best_loss = np.inf
     global_best_measure = -np.inf
@@ -43,7 +43,7 @@ def tune_neural_network(X_train: np.ndarray,
             for activation in activations.get_all_activations():
                 all_num_neurons_combinations = permutations([1,2,3,4,5], num_layers)
                 for neuron_combination in all_num_neurons_combinations:
-                    
+
                     # Construct Neural network
                     input_size = X_train.shape[1]
                     layers = []
@@ -63,7 +63,7 @@ def tune_neural_network(X_train: np.ndarray,
                         layers.append(Layer(activations.identity, input_size, 1))
 
                     network = NeuralNetwork(layers, loss_func)
-                    
+
                     train_losses = []
                     train_measure_score = []
 
@@ -76,10 +76,10 @@ def tune_neural_network(X_train: np.ndarray,
 
 
                     for epoch in range(epochs):
-                        
+
                         # Forward Pass
                         output = network.forward(X_train)
-                        
+
                         # MSE and measure
                         train_loss = np.mean(network.cost(output, Z_train))
                         train_losses.append(train_loss)
@@ -87,10 +87,10 @@ def tune_neural_network(X_train: np.ndarray,
                         if problem_type == 'classification':
                             # Classify
                             output = (output > 0.5).astype(int)
-                        
+
                         train_measure = measure(Z_train, output)
                         train_measure_score.append(train_measure)
-                        
+
                         # Backward pass
                         network.backward(Z_train, lr)
 
