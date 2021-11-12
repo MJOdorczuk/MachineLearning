@@ -11,7 +11,7 @@ class SGD():
             lr: float = 0.01,
             silent: bool = True,
             use_momentum: bool = False,
-            alpha: float = 0.5,
+            alpha: float = 0.9,
         ) -> None:
 
         self.lr = lr
