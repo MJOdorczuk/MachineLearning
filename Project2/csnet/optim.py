@@ -41,7 +41,7 @@ class SGD():
             grad: np.ndarray,
             bias: bool = False
         ) -> np.ndarray:
-        """One optimization step using momentum SGT."""
+        """One optimization step using momentum SGD."""
         if bias:
             self.momentum_bias = self.alpha * self.momentum_bias + (1 - self.alpha) * grad
             updated_weights = weights - self.lr * self.momentum_bias

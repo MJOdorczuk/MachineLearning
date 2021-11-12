@@ -24,17 +24,6 @@ class LogisticRegression:
         self.activation = Activation().sigmoid
         self.scaler= StandardScaler()
 
-    def _sgd_step(self,
-        x: np.ndarray,
-        y: np.ndarray,
-        weights: np.ndarray,
-        lr: float,
-        grad: Callable,
-        lamb: int = 0,
-    ) -> np.ndarray:
-        """One optimization step using SGT."""
-        return weights - lr * grad
-
 
     def forward(self, x):
         """
@@ -82,31 +71,7 @@ class LogisticRegression:
         
         return np.mean(losses), np.mean(accuracies)
 
-    
-    def fit(self, x: np.ndarray, y: np.ndarray, epochs: int = 50, lr: float = 0.01, lamb: float = 0.0, batch_size: int = 1):
-        """
-        #TODO
-        Add aggregation of loss and acc
-        """
-        
-        self.weights = self.optimizer(x, 
-                                        y, 
-                                        self.weights, 
-                                        self.loss_func, 
-                                        lamb,
-                                        batch_size,
-                                        epochs,
-                                        lr,
-                                        momentum = True)
-        self.bias = self.optimizer(x, 
-                                        y, 
-                                        self.bias, 
-                                        self.loss_func, 
-                                        lamb,
-                                        batch_size,
-                                        epochs,
-                                        lr,
-                                        momentum = True)
+
 
     def loss(self, x, weights:np.ndarray, bias:np.ndarray, y: np.ndarray, lamb) -> int:
         """
@@ -139,25 +104,16 @@ class LogisticRegression:
         gradient_w = grad_cost_function_w(x, self.weights, self.bias, y, lamb)
         gradient_b = grad_cost_function_b(x, self.weights, self.bias, y, lamb)
 
-        self.weights = self._sgd_step(x, 
-                                        y, 
-                                        self.weights, 
-                                        lr,
-                                        gradient_w,
-                                        lamb = lamb)
-        self.bias = self._sgd_step(x, 
-                                        y, 
-                                        self.bias, 
-                                        lr,
-                                        gradient_b,
-                                        lamb = lamb)
+        self.weights = self.optimizer.step(self.weights, gradient_w)
+
+        self.bias = self.optimizer.step(self.bias, gradient_b, bias = True)
         
 
     def train_model(self, x: np.ndarray, y: np.ndarray, epochs: int = 50, lr:float = 0.01, lamb: float = 0.0, batch_size: int = 16, eval_size:float = 0.25):
         
         # Train, eval set
-        X_train, X_eval, y_train, y_eval = train_test_split(x, y, test_size=eval_size)
-        
+        X_train, X_eval = x
+        y_train, y_eval = y
 
         self.scaler.fit(X_train)
         X_train = self.scaler.transform(X_train)

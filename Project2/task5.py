@@ -1,7 +1,7 @@
 
 from csnet.logistic_regression import LogisticRegression
 from csnet.loss import binary_cross_entropy
-from csnet.optim import sgd
+from csnet.optim import SGD
 from csnet.data import load_breast_cancer_data
 from sklearn.model_selection import train_test_split
 
@@ -23,12 +23,18 @@ def tune_log_reg(x: np.ndarray, y:np.ndarray, epochs:int=100, batch_size:int = 1
     global_best_test_losses = None
     global_best_train_acc = None
     global_best_test_acc = None
+
+    X_train, X_eval, y_train, y_eval = train_test_split(x, y, test_size=0.2)
+
+    X = [X_train, X_eval]
+    Y = [y_train, y_eval]
     
     for lamb in np.logspace(-4,2, 10):
         for lr in [1, 0.5, 0.1, 0.05, 0.01]:
+            sgd = SGD(lr, use_momentum=True)
             log_reg = LogisticRegression(x.shape[1], sgd, binary_cross_entropy)
             # Best based on validation set
-            best_model, best_loss, best_epoch, best_acc, train_losses, train_accuracies, test_losses, test_accuracies = log_reg.train_model(x,y,epochs, lr, lamb, batch_size, 0.25)
+            best_model, best_loss, best_epoch, best_acc, train_losses, train_accuracies, test_losses, test_accuracies = log_reg.train_model(X, Y,epochs, lr, lamb, batch_size, 0.25)
             if global_best_acc <= best_acc:
                 if best_loss < global_best_loss:
                     global_best_acc = best_acc
