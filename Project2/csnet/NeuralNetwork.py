@@ -116,6 +116,8 @@ class NeuralNetwork:
 
         self.output_layer = self.layers[-1]
 
+        self.prev_weights = [l.weights for l in self.layers]
+
         
     def forward(self, x: np.ndarray) -> np.ndarray:
         """Neural network output after feeding to the activation function.
@@ -147,7 +149,7 @@ class NeuralNetwork:
             Regularization factor.
         """        
 
-        last_layer = self.output_layer
+        last_layer = self.layers[-1]
 
         # Calculate delta for last layer
         delta_output = last_layer.d_activation(last_layer.z) * self.d_cost(y,last_layer.a)
@@ -174,14 +176,14 @@ class NeuralNetwork:
             if lamb > 0:
                 weights_grad_output += lamb * self.layers[-1].weights
 
-            # update_weights last layer:
-            self.layers[-1].update_weight(weights_grad_output, bias_grad_output)
-
             # Delta second last
             delta_second_last = np.matmul(deltas[-1], self.layers[-1].weights.T) * self.layers[-2].d_activation(self.layers[-2].z)
             deltas.append(delta_second_last)
 
-            for l in np.arange(len(self.layers)-2,1,-1):
+            # update_weights last layer:
+            self.layers[-1].update_weight(weights_grad_output, bias_grad_output)
+
+            for l in np.arange(len(self.layers)-2,0,-1):
                 # Gradient of the current layer
                 weights_grad = np.matmul(self.layers[l-1].a.T, deltas[-1])
                 bias_grad = np.sum(deltas[-1], axis = 0)
@@ -195,5 +197,14 @@ class NeuralNetwork:
 
                 # Update weights
                 self.layers[l].update_weight(weights_grad, bias_grad)
+
+            # First layer:
+            weights_grad = np.matmul(self.x.T, deltas[-1])
+            if lamb > 0:
+                weights_grad_output += lamb * self.layers[-1].weights
+            bias_grad = np.sum(deltas[-1], axis = 0)
+            self.layers[0].update_weight(weights_grad, bias_grad)
+
+            
         
         
