@@ -31,22 +31,6 @@ class Layer:
         self.z = None
         self.a = None
 
-    def pre_activation(self, input: np.ndarray) -> np.ndarray:
-        """Layer output before feeding to the activation function.
-
-        Parameters
-        ----------
-        input   :
-            Data given from the input neurons
-
-        Returns
-        -------
-        np.ndarray
-
-        """
-        self.z = np.dot(input,self.weights) + self.bias
-        return self.z
-
     def forward(self, input: np.ndarray) -> np.ndarray:
         """Layer output after feeding to the activation function.
 
@@ -60,28 +44,9 @@ class Layer:
         np.ndarray
 
         """
-        self.a = self.activation(self.pre_activation(input))
+        self.z = np.dot(input,self.weights) + self.bias
+        self.a = self.activation(self.z)
         return self.a
-
-    def back_error(self, z: np.ndarray, delta: np.ndarray, f_prime: Callable[[float], float]) -> np.ndarray:
-        """Backwards propagated error of the previous layer based on the error of the current output, based on the formula:
-        delta_j^{l-1}=sum_k delta_k^l w_{kj}^lf'(z_j^{l-1})
-
-        Parameters
-        ----------
-        z   :
-            Outputs from previous layer before activation
-        delta   :
-            Backwards propagated error for the current layer (delta_k^l).
-        f_prime  :
-            Gradient of the activation function of the previous layer (f')
-
-        Returns
-        -------
-        np.ndarray
-
-        """
-        return np.multiply(f_prime(z).T, np.dot(self.weights, delta))
 
     def update_weight(self, weight_grad, bias_grad) -> None:
         """Update weights using the optimizer based on the learning rate and the backwards propagated error of this layer.
@@ -137,6 +102,10 @@ class NeuralNetwork:
         for layer in self.layers:
             y = layer.forward(y)
         return y
+
+    def reduce_lr(self):
+        for l in self.layers:
+            l.opt.lr /= 2/3
 
     def backward(self, y: np.ndarray, lamb: float = 0) -> None:
         """Back propagation implementation based on the last forward feed and the expected values:

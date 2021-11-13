@@ -19,11 +19,11 @@ from sklearn.preprocessing import StandardScaler
 
 def tune_neural_network(X: np.ndarray, 
                         z: np.ndarray, 
-                        epochs:int = 1000, 
+                        epochs:int = 100, 
                         batch_size:int = 16, 
                         lamb: float = 0,
-                        #learning_rates = [3, 2.5, 2, 1.5],
-                        learning_rates = np.logspace(-3, -1, 5),
+                        learning_rates = [3, 2, 1.5,1],
+                        #learning_rates = np.logspace(-2, -0.5, 6),
                         measure: Callable = r2_score,
                         loss_func: Callable = mean_squared_error,
                         problem_type: str = 'Regression'):
@@ -51,7 +51,7 @@ def tune_neural_network(X: np.ndarray,
     global_best_eval_measure = None
 
     activations = Activation()
-    for lamb in np.logspace(-3, 0.5, 4):
+    for lamb in np.logspace(-3, -0.5, 4):
         print(f"New Lambda {lamb}")
         for lr in learning_rates:
             print(f"New Learning rate: {lr}")
@@ -64,7 +64,7 @@ def tune_neural_network(X: np.ndarray,
                         input_size = X_train.shape[1]
                         layers = []
                         for neurons_for_a_layer in neuron_combination:
-                            opt = SGD(lr, True, True, 0.5)
+                            opt = SGD(lr, batch_size, True, True, 0.9)
                             layer = Layer(activation, input_size, neurons_for_a_layer,opt)
                             input_size = neurons_for_a_layer
                             """
@@ -76,7 +76,7 @@ def tune_neural_network(X: np.ndarray,
                             layers.append(layer)
                         
                         # Output layer
-                        opt = SGD(lr, True, True, 0.5)
+                        opt = SGD(lr, batch_size, True, True, 0.9)
                         if problem_type == 'Classification':
                             layers.append(Layer(activations.sigmoid, input_size, 1, opt))
                         else:
@@ -148,6 +148,16 @@ def tune_neural_network(X: np.ndarray,
                                 best_loss = eval_losses[-1]
                                 best_measure = eval_measure_score[-1]
 
+                            # Simple early stopping
+                            if epoch % 11 == 10:
+                                # Very little change the past 10 epochs or if the training has become worse.
+                                if np.abs(np.mean(eval_losses[5:]) - np.mean(eval_losses[10:])) < 0.0001:
+                                    print("Early stopping, no learning", epoch, np.abs(np.mean(eval_losses[5:]) - np.mean(eval_losses[10:])),  np.mean(eval_losses[5:]),  np.mean(eval_losses[10:]))
+                                    break
+                                
+                            if epoch % 50 == 49:
+                                network.reduce_lr()
+
                         # Tuning hyperparameters on eval set.
                         if best_measure > global_best_measure:
                             print(f"New best {measure.__name__}: {best_measure}, {loss_func.__name__}: {best_loss}, learning rate: {lr}, lamb: {lamb} with {neuron_combination} and activation {activation.__name__}")
@@ -174,7 +184,7 @@ def tune_neural_network(X: np.ndarray,
                             plt.legend()
                             plt.show()
                             """
-                            """
+                            
                             # TODO Remove this, this is cuz im impatient
                             if best_measure >= 0.95:
                                 returns = {
@@ -192,7 +202,8 @@ def tune_neural_network(X: np.ndarray,
                                 }
 
                                 return returns
-                            """
+                            
+                            
                     """
                     plt.plot(global_best_train_losses, label = "Train loss")
                     plt.plot(global_best_eval_losses, label = "Eval loss")
@@ -262,7 +273,7 @@ def train_pytorch_net(custom_model, X, z, lr=0.1, epochs=20, batch_size = 16, la
     model = torch.nn.Sequential(*modules)
 
 
-    optimizer = torch.optim.SGD(model.parameters(),lr=lr, momentum=0.5, weight_decay=lamb)
+    optimizer = torch.optim.SGD(model.parameters(),lr=lr, momentum=0.9, weight_decay=lamb)
 
     train_dataset = torch.utils.data.TensorDataset(X_train, z_train) 
     eval_dataset = torch.utils.data.TensorDataset(X_eval, z_eval)

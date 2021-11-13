@@ -9,12 +9,14 @@ class SGD():
 
     def __init__(self,
             lr: float = 0.01,
+            batch_size: int = 16,
             silent: bool = True,
             use_momentum: bool = False,
             alpha: float = 0.9,
         ) -> None:
 
         self.lr = lr
+        self.batch_size = batch_size
         self.silent = silent
         self.use_momentum = use_momentum
         self.alpha = alpha
@@ -44,10 +46,10 @@ class SGD():
         """One optimization step using momentum SGD."""
         if bias:
             self.momentum_bias = self.alpha * self.momentum_bias + (1 - self.alpha) * grad
-            updated_weights = weights - self.lr * self.momentum_bias
+            updated_weights = weights - 1/self.batch_size * self.lr * self.momentum_bias
         else:
             self.momentum_weights = self.alpha * self.momentum_weights + (1 - self.alpha) * grad
-            updated_weights = weights - self.lr * self.momentum_weights
+            updated_weights = weights -  1/self.batch_size * self.lr * self.momentum_weights
 
         return updated_weights
 
