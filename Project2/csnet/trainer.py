@@ -22,7 +22,7 @@ def tune_neural_network(X: np.ndarray,
                         epochs:int = 100, 
                         batch_size:int = 16, 
                         lamb: float = 0,
-                        learning_rates = [3, 2, 1.5,1],
+                        learning_rates = [2, 1.5, 1, 0.5],
                         #learning_rates = np.logspace(-2, -0.5, 6),
                         measure: Callable = r2_score,
                         loss_func: Callable = mean_squared_error,
@@ -55,7 +55,7 @@ def tune_neural_network(X: np.ndarray,
         print(f"New Lambda {lamb}")
         for lr in learning_rates:
             print(f"New Learning rate: {lr}")
-            for num_layers in range(3):
+            for num_layers in range(1, 4):
                 for activation in activations.get_all_activations():
                     all_num_neurons_combinations = permutations([1,2,3,4,5], num_layers)
                     for neuron_combination in all_num_neurons_combinations:

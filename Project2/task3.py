@@ -57,31 +57,27 @@ def train_and_test_neural_net_regression(X: np.ndarray, Z: np.ndarray, epochs: i
     print(f"Neural network final test on best model: MSE: {test_loss}, R2: {test_r2}")
 
     # Testing against Pytorch
-    #model, train_losses, train_measures, eval_losses, eval_measures, test_losses, test_measure = train_pytorch_net(best_model, X, Z, returns['lr'], epochs, batch_size)
-   # print(f"Torch Neural network final test on best model: MSE: {test_losses}, R2: {test_measure}")
+    model, train_losses, train_measures, eval_losses, eval_measures, test_losses, test_measure = train_pytorch_net(best_model, X, Z, returns['lr'], epochs, batch_size)
+    print(f"Torch Neural network final test on best model: MSE: {test_losses}, R2: {test_measure}")
 
 
     # Plotting losses and R2
     plt.plot(returns['train_losses'], label = "Train loss")
     plt.plot(returns['eval_losses'], label = "Eval loss")
-   # plt.plot(train_losses, label = "Torch Train loss")
-   # plt.plot(eval_losses, label = "Torch Eval loss")
+    plt.plot(train_losses, label = "Torch Train loss")
+    plt.plot(eval_losses, label = "Torch Eval loss")
     plt.legend()
     plt.show()
     plt.plot(returns['train_measure'], label = "Train R2")
     plt.plot(returns['eval_measure'], label = "Eval R2")
-   # plt.plot(train_measures, label = "Torch Train R2")
-   # plt.plot(eval_measures, label = "Torch Eval R2")
+    plt.plot(train_measures, label = "Torch Train R2")
+    plt.plot(eval_measures, label = "Torch Eval R2")
     plt.legend()
     plt.show()
 
-
     fig, ax = plt.subplots(1, subplot_kw={"projection": "3d"})
-
-    # Create coordinates to use in prediction
-    x_plot = np.arange(0, 1, 0.01)
-    y_plot = np.arange(0, 1, 0.01)
-    X_plot, Y_plot = np.meshgrid(x_plot, y_plot)
+    X_test_sorted = np.sort(X_test, axis=0)
+    X_plot, Y_plot = np.meshgrid(X_test_sorted[:,0], X_test_sorted[:,1])
 
     # Create input from X and Y corresponding to expected input
     data = np.column_stack([X_plot.ravel(), Y_plot.ravel()])
@@ -96,7 +92,7 @@ def train_and_test_neural_net_regression(X: np.ndarray, Z: np.ndarray, epochs: i
     surf = ax.plot_surface(
         X_plot, Y_plot, pred_2d, cmap=plt.cm.coolwarm, linewidth=0, antialiased=False
     )
-    ax.scatter(data[:, 0], data[:, 1], z_plot, marker="o")
+    ax.scatter(X_test[:, 0], X_test[:, 1], z_test, marker="o")
 
     plt.savefig("figures/NN_surface_plot.pdf", dpi=150)
     plt.show()
