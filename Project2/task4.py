@@ -52,13 +52,19 @@ def train_and_test_neural_net_classification(X: np.ndarray, Y: np.ndarray, epoch
     plt.plot(returns['eval_losses'], label = "Eval loss")
     plt.plot(train_losses, label = 'Torch Train loss')
     plt.plot(eval_losses, label = "Torch Eval loss")
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss")
     plt.legend()
+    plt.savefig("figures/task_4_loss.pdf", dpi=100)
     plt.show()
     plt.plot(returns['train_measure'], label = "Train Acc")
     plt.plot(returns['eval_measure'], label = "Eval Acc")
     plt.plot(train_measures, label = "Torch Train Acc")
     plt.plot(eval_measures, label = 'Torch eval Acc')
+    plt.xlabel("Epochs")
+    plt.ylabel("Accuracy")
     plt.legend()
+    plt.savefig("figures/task_4_acc.pdf", dpi=100)
     plt.show()
 
     from IPython import embed; embed()
@@ -66,7 +72,7 @@ def train_and_test_neural_net_classification(X: np.ndarray, Y: np.ndarray, epoch
 
 if __name__ == '__main__':
     num_epochs = 100
-    
+
     x, y = load_breast_cancer_data()
-    
+
     train_and_test_neural_net_classification(x, y, epochs=num_epochs)

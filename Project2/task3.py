@@ -66,13 +66,19 @@ def train_and_test_neural_net_regression(X: np.ndarray, Z: np.ndarray, epochs: i
     plt.plot(returns['eval_losses'], label = "Eval loss")
     plt.plot(train_losses, label = "Torch Train loss")
     plt.plot(eval_losses, label = "Torch Eval loss")
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss")
     plt.legend()
+    plt.savefig("figures/task_3_loss.pdf", dpi=100)
     plt.show()
     plt.plot(returns['train_measure'], label = "Train R2")
     plt.plot(returns['eval_measure'], label = "Eval R2")
     plt.plot(train_measures, label = "Torch Train R2")
     plt.plot(eval_measures, label = "Torch Eval R2")
+    plt.xlabel("Epochs")
+    plt.ylabel("$R^2$")
     plt.legend()
+    plt.savefig("figures/task_3_r2.pdf", dpi=100)
     plt.show()
 
     fig, ax = plt.subplots(1, subplot_kw={"projection": "3d"})
@@ -105,11 +111,11 @@ if __name__ == '__main__':
     num_points = 100
     num_epochs = 100
     noise = 0.001
-    
+
     x = np.random.uniform(0, 1, num_points)
     y = np.random.uniform(0, 1, num_points)
 
     X = np.column_stack((x,y))
     Z = FrankeFunction(x, y, noise).reshape(-1,1)
-    
+
     train_and_test_neural_net_regression(X, Z, epochs=num_epochs, batch_size = 5)

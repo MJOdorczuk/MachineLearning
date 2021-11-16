@@ -50,13 +50,13 @@ def Ridge(x_value,y_value, lamb):
 
 def simple_mse_and_r2_by_complexity(
     reg_func = least_square,
-    x = None, 
-    y = None, 
+    x = None,
+    y = None,
     z = None,
-    num_points = 1000, 
-    complexity = 15, 
-    noise = 0.1, 
-    scale = True, 
+    num_points = 1000,
+    complexity = 15,
+    noise = 0.1,
+    scale = True,
     lamb = 0,
     return_losses = False,
     scale_with_std = False,
@@ -64,18 +64,18 @@ def simple_mse_and_r2_by_complexity(
     """
     Computes the simples ordinary least square based on the Franke Function
     """
-    
+
     if x is None:
         x = np.random.uniform(0, 1, num_points)
         y =  np.random.uniform(0, 1, num_points)
     if z is None:
         z = FrankeFunction(x, y, noise).reshape(-1,1) # Target
-        
+
     MSE_train = []
     MSE_pred = []
     r2_train = []
     r2_pred = []
-    
+
     all_ols_betas = []
     all_xtx_inv = []
 
@@ -89,7 +89,7 @@ def simple_mse_and_r2_by_complexity(
         scaler_in.fit(X_train)
         scale_z = StandardScaler(with_std=scale_with_std)
         scale_z.fit(z_train)
-        
+
         if scale:
             X_train = scaler_in.transform(X_train)
             X_test = scaler_in.transform(X_test)
@@ -100,7 +100,7 @@ def simple_mse_and_r2_by_complexity(
 
         beta_opt = reg_func(X_train, z_train, lamb)
         all_ols_betas.append(beta_opt)
-        
+
         xtx = np.linalg.pinv(X_train.transpose().dot(X_train))
         all_xtx_inv.append(xtx)
 
@@ -115,15 +115,15 @@ def simple_mse_and_r2_by_complexity(
 
         r2_train.append(r2_score(z_tilde, z_train))
         r2_pred.append(r2_score(z_pred, z_test))
-    
-    
+
+
     return MSE_pred, r2_pred
 
 def train_and_test_neural_net_regression(X: np.ndarray, Z: np.ndarray, epochs: int = 100, batch_size: int = 16):
 
     X_train, X_eval, X_test = X
     z_train, z_eval, z_test = Z
-    
+
     returns = tune_neural_network(X,Z, epochs=epochs, batch_size = batch_size)
 
     # Final test
@@ -177,7 +177,7 @@ def compare_nn_franke():
     num_epochs = 100
     batch_size = 16
     noise = 0.001
-    
+
     x = np.random.uniform(0, 1, num_points)
     y = np.random.uniform(0, 1, num_points)
 
@@ -234,15 +234,20 @@ def compare_nn_franke():
     plt.plot(best_nn['eval_losses'], label = "Eval loss")
     plt.plot(train_losses, label = "Torch Train loss")
     plt.plot(eval_losses, label = "Torch Eval loss")
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss")
     plt.legend()
+    plt.savefig("figures/task_2_loss.pdf", dpi=100)
     plt.show()
     plt.plot(best_nn['train_measure'], label = "Train R2")
     plt.plot(best_nn['eval_measure'], label = "Eval R2")
     plt.plot(train_measures, label = "Torch Train R2")
     plt.plot(eval_measures, label = "Torch Eval R2")
+    plt.xlabel("Epochs")
+    plt.ylabel("$R^2$")
     plt.legend()
+    plt.savefig("figures/task_2_r2.pdf", dpi=100)
     plt.show()
-
 
 
 if __name__ == '__main__':
