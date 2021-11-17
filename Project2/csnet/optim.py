@@ -1,9 +1,95 @@
 from __future__ import annotations
 
-import random
 from typing import Generator
 
 import numpy as np
+
+
+class SGD():
+    """Stochastic gradient decent optimizer.
+
+    Example
+    -------
+    >>> EPOCHS = 100
+    >>> LR = 0.1
+    >>> otim = SDG(lr=LR, batch_size=4, use_momentum=True, decay=LR/EPOCHS)
+    >>> weights = optim.step(weights, gradient)
+    """
+    def __init__(self,
+            lr: float = 0.01,
+            batch_size: int = 16,
+            silent: bool = True,
+            use_momentum: bool = False,
+            alpha: float = 0.9,
+            use_lr_decay: bool = True,
+            decay: float = 0.001,
+        ) -> None:
+
+        self.lr = lr
+        self.batch_size = batch_size
+        self.silent = silent
+        self.use_momentum = use_momentum
+        self.alpha = alpha
+        self.decay = decay
+        self.use_lr_decay = use_lr_decay
+        self.steps_done = 0
+        self.momentum_weights = 0
+        self.momentum_bias = 0
+
+    def _step_lr(self) -> float:
+        """Get learning rate for next step."""
+        if self.use_lr_decay is False:
+            return self.lr
+
+        return self.lr * (1.0 / (1 + self.decay * self.steps_done))
+
+    def step(
+        self,
+        weights: np.ndarray,
+        grad: np.ndarray,
+        bias = False
+    ) -> np.ndarray:
+        if self.use_momentum:
+            return self.momentum_step(weights,grad, bias)
+        else:
+            return self.sgd_step(weights,grad)
+
+    def sgd_step(self,
+            weights: np.ndarray,
+            grad: np.ndarray,
+        ) -> np.ndarray:
+
+        updated_weights = weights - self._step_lr() * grad
+        self.steps_done += 1
+
+        return np.nan_to_num(updated_weights)
+
+    def momentum_step(self,
+            weights: np.ndarray,
+            grad: np.ndarray,
+            bias: bool = False
+        ) -> np.ndarray:
+        """One optimization step using momentum SGD."""
+        if bias:
+            self.momentum_bias = (
+                self.alpha * self.momentum_bias + (1 - self.alpha) * grad
+            )
+            updated_weights = (
+                weights - 1/self.batch_size * self._step_lr()
+                * self.momentum_bias
+            )
+        else:
+            self.momentum_weights = (
+                self.alpha * self.momentum_weights + (1 - self.alpha) * grad
+            )
+            updated_weights = (
+                weights -  1/self.batch_size * self._step_lr()
+                * self.momentum_weights
+            )
+
+        self.steps_done += 1
+
+        return np.nan_to_num(updated_weights)
 
 
 def sgd(
@@ -13,8 +99,12 @@ def sgd(
     epochs: int = 50,
     lr: float = 0.01,
     silent: bool = True,
-) -> np.ndarray:
+    momentum: bool = False,
+    alpha: float = 0.5,
+) -> Generator[np.ndarray, None, np.ndarray]:
     """Simple stochastic gradient descent implementation.
+
+    Generator yielding after each mini-batch.
 
     Parameters
     ----------
@@ -30,7 +120,14 @@ def sgd(
         Learning rate/step lenght used in gradient decent.
     silent  :
         Print output or not
+    momentum :
+        Use momentum in calculations
+    alpha   :
+        Gradient decay constant used in momentum.
 
+    Yields
+    -------
+    np.ndarray
 
     Returns
     -------
@@ -39,23 +136,66 @@ def sgd(
     """
     if x.shape != y.shape:
         raise AttributeError(
-            f"Wrong shape of x and y. Shape {x.shape=} != {y.shape=}"
+            f"Wrong shape of x and y. Shape {x.shape} != {y.shape}"
         )
+
+    if momentum and alpha >= 1:
+        raise AttributeError("alpha must be less the 1")
 
     theta = np.random.randn(x.shape[1] + 1, 1)
 
     X = np.column_stack((np.ones((x.shape[0], 1)), x))
+
+    m = 0
 
     for epoch in range(epochs):
         if not silent:
             print(f"Epoch {epoch}/{epochs}")
 
         for x_sub, y_sub in _random_mini_batch_generator(X, y, batch_size):
-            theta = (
-                theta - lr * 2 * x_sub.T @ ((x_sub @ theta) - y_sub)
-            )
+            if momentum:
+                theta, m = _momentum_sgd_step(
+                    x_sub,
+                    y_sub,
+                    theta,
+                    lr,
+                    alpha,
+                    m
+                )
+            else:
+                theta = _sgd_step(x_sub, y_sub, theta, lr)
+
+        yield theta
 
     return theta
+
+
+
+
+def _momentum_sgd_step(
+    x: np.ndarray,
+    y: np.ndarray,
+    theta: np.ndarray,
+    lr: float,
+    alpha: float,
+    m: float,
+) -> np.ndarray:
+    """One optimization step using momentum SGT."""
+    gradient = 2 * x.T @ ((x @ theta) - y)
+    m = alpha * m + (1 - alpha) * gradient
+    theta = theta - lr * m
+    return theta, m
+
+
+def _sgd_step(
+    x: np.ndarray,
+    y: np.ndarray,
+    theta: np.ndarray,
+    lr: float,
+) -> np.ndarray:
+    """One optimization step using SGT."""
+    gradient = 2 * x.T @ ((x @ theta) - y)
+    return theta - lr * gradient
 
 
 def _random_mini_batch_generator(
@@ -64,10 +204,13 @@ def _random_mini_batch_generator(
     batch_size: int,
 ) -> Generator[tuple[np.ndarray, ...], None, None]:
     """Generates mini-batches from `x` and `y`."""
-    mini_batches = x.shape[0] // batch_size
+    mini_batches = x.shape[0] // batch_size +1
     m = x.shape[0]
     for _ in range(mini_batches):
-        k = random.randint(0, m)
-        subset_x = x[k:k + batch_size]
-        subset_y = y[k:k + batch_size]
-        yield subset_x, subset_y
+
+        # With replacement as done in the lectures, but also with a constant batch size.
+        k = np.random.randint(m, size = batch_size)
+        subset_x = x[k]
+        subset_y = y[k]
+        if subset_x.shape[0] != 0:
+            yield subset_x, subset_y
