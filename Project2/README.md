@@ -1,8 +1,8 @@
 # Project 2
-The folder `cs-net` contains the source code for our python package where
+The folder `csnet` contains the source code for our python package where
 the project required implementations are defined.
 
-In the folder `notebook` this package are used to present the solutions of
+In the folder `solutions` this package are used to present the solutions of
 the problems presented in the exercises.
 
 To format the code there is added a [`pre-commit`](https://pre-commit.com)
