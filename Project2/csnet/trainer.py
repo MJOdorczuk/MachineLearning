@@ -23,12 +23,12 @@ def tune_neural_network(
         epochs:int = 100,
         batch_size:int = 16,
         lamb: float = 0,
-        learning_rates=np.logspace(-3, -0.5, 6),
+        learning_rates=np.logspace(-0.5,-3, 6),
         lambdas=np.logspace(-3, -0.5, 5),
         measure: Callable = r2_score,
         loss_func: Callable = mean_squared_error,
         problem_type: str = 'Regression',
-) -> dict[str, Any]:
+):
     """Perform grid search of hyperparameters fo NN.
 
     """

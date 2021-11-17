@@ -17,5 +17,8 @@ def binary_cross_entropy(y: np.ndarray, yhat: np.ndarray, lamb: float = 0, weigh
     return - 1/n * np.sum(y * np.log(yhat) + (1-y) * np.log(1 - yhat)) + (lamb / n) * np.sum(np.square(weights))
 
 def mean_squared_error(y: np.ndarray, yhat:np.ndarray):
-
+    """
+    MSE without any regularization.
+    Regularization for the NN is found in the back prop.
+    """
     return np.mean(np.square(y - yhat), axis=0)
