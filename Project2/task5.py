@@ -28,7 +28,7 @@ def tune_log_reg(x: np.ndarray, y:np.ndarray, epochs:int=100, batch_size:int = 1
 
     X = [X_train, X_eval]
     Y = [y_train, y_eval]
-    
+
     for lamb in np.logspace(-4,2, 10):
         for lr in [1, 0.5, 0.1, 0.05, 0.01]:
             sgd = SGD(lr, use_momentum=True)
@@ -60,7 +60,7 @@ def train_and_test_log_reg(x: np.ndarray, y: np.ndarray, epochs:int=100, batch_s
 
     # Tune the model
     best_log_reg_model, log_reg_object, global_best_train_losses, global_best_test_losses, global_best_train_acc, global_best_test_acc = tune_log_reg(X_train, y_train, epochs=epochs, batch_size=batch_size, lamb=lamb)
-    
+
     # Initialize the best model, based on best weights
     log_reg_object.weights = best_log_reg_model[0]
     log_reg_object.bias = best_log_reg_model[1]
@@ -73,11 +73,17 @@ def train_and_test_log_reg(x: np.ndarray, y: np.ndarray, epochs:int=100, batch_s
     # Plotting losses and accuracies
     plt.plot(global_best_train_losses, label = "Train loss")
     plt.plot(global_best_test_losses, label = "Test loss")
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss")
     plt.legend()
+    plt.savefig("figures/task_5_loss.pdf", dpi=100)
     plt.show()
     plt.plot(global_best_train_acc, label = "Train acc")
     plt.plot(global_best_test_acc, label = "Test acc")
+    plt.xlabel("Epochs")
+    plt.ylabel("Accuracy")
     plt.legend()
+    plt.savefig("figures/task_5_acc.pdf", dpi=100)
     plt.show()
 
 if __name__ == "__main__":
@@ -86,4 +92,4 @@ if __name__ == "__main__":
 
     train_and_test_log_reg(x,y)
 
-    
+
