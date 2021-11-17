@@ -1,4 +1,3 @@
-
 from csnet.logistic_regression import LogisticRegression
 from csnet.loss import binary_cross_entropy
 from csnet.optim import SGD
