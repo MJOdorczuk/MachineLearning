@@ -324,7 +324,7 @@ def train_pytorch_net(custom_model, X, z, lr=0.1, epochs=20, batch_size = 16, la
             batch_eval_mea.append(
                 measure(
                     sub_y.detach().numpy(),
-                    np.nan_is_num(pred.detach().numpy()),
+                    pred.detach().numpy(),
                 )
             )
         eval_losses.append(np.mean(batch_eval_losses))
