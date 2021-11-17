@@ -1,37 +1,62 @@
-import random
-
 import numpy as np
 import pytest
+from autograd import grad
 
-from csnet.optim import sgd
-
-np.random.seed(0)
-random.seed(0)
-
-
-def test_sgd_working() -> None:
-    m = 100
-    x = 2 * np.random.rand(m, 1)
-    y = 4 + 3 * x + np.random.randn(m, 1)
-    result = list(sgd(x, y, lr=0.01, epochs=50))
-    assert pytest.approx(result[-1][0], 0.1) == 4
-    assert pytest.approx(result[-1][1], 0.1) == 3
+from csnet.optim import (
+    random_mini_batch_generator,
+    SGD,
+)
+from csnet.utils import FrankeFunction, cost_mse, create_X
 
 
-def test_sgd_momnetum_working() -> None:
-    m = 100
-    x = 2 * np.random.rand(m, 1)
-    y = 4 + 3 * x + np.random.randn(m, 1)
-    result = list(sgd(x, y, lr=0.01, epochs=100, momentum=True, alpha=0.7))
-    assert pytest.approx(result[-1][0], 0.1) == 4
-    assert pytest.approx(result[-1][1], 0.1) == 3
+@pytest.fixture
+def make_data() -> np.ndarray:
+    num_points = 100
+    x = np.random.uniform(0, 1, num_points)
+    y = np.random.uniform(0, 1, num_points)
+    z = FrankeFunction(x, y, 0)
+    X = create_X(x, y, n=2)
+    weights = np.random.randn(X.shape[1], 1)
+    return X, z, weights
 
-    with pytest.raises(AttributeError):
-        next(sgd(x, y, lr=0.01, epochs=100, momentum=True, alpha=1.0))
+
+def test_sdg_momentum_step(make_data) -> None:
+    X, z, weights = make_data
+
+    expected_weights_shape = weights.shape
+
+    optim = SGD(0.01, 2, True, True, 0.5, True)
+    gradient = grad(cost_mse)(weights, X, 0, z)
+
+    w = optim.step(
+        weights,
+        gradient,
+    )
+
+    assert w.shape == expected_weights_shape
 
 
-def test_sgd_wrong_shape() -> None:
-    x = np.random.rand(10, 1)
-    y = np.random.randn(11, 1)
-    with pytest.raises(AttributeError):
-        _ = next(sgd(x, y, lr=0.01, epochs=50))
+def test_sdg_step(make_data) -> None:
+    X, z, weights = make_data
+
+    expected_weights_shape = weights.shape
+
+    optim = SGD(0.01, 2, True, False, 0.5, True)
+    gradient = grad(cost_mse)(weights, X, 0, z)
+
+    w = optim.step(
+        weights,
+        gradient,
+    )
+
+    assert w.shape == expected_weights_shape
+
+
+def test_generate_mini_batch_working(make_data) -> None:
+    X, z, weights = make_data
+
+    n_matches = 0
+    for x, y in random_mini_batch_generator(X, z, 2):
+        n_matches += 1
+
+    assert n_matches == X.shape[0] // 2

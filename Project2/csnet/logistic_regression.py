@@ -1,7 +1,7 @@
 from typing import Callable
 import numpy as np
 from csnet.activation import Activation
-from csnet.optim import sgd, _random_mini_batch_generator
+from csnet.optim import random_mini_batch_generator
 from csnet.metrics import accuracy
 from sklearn.model_selection import train_test_split
 from autograd import elementwise_grad
@@ -31,7 +31,7 @@ class LogisticRegression:
 
         Args:
             x: Input data
-        
+
         Return:
             pred: Output of 1 hidden layer followed by a sigmoid activation.
         """
@@ -42,7 +42,7 @@ class LogisticRegression:
 
     def predict(self, x: np.ndarray, threshold: float = 0.5) -> np.ndarray:
         """
-        Prediction: Forward pass into a thresholding. 
+        Prediction: Forward pass into a thresholding.
 
         Args:
             x: Input data
@@ -58,7 +58,7 @@ class LogisticRegression:
     def validate(self, x: np.ndarray, y: np.ndarray, batch_size: int = 16, lamb: float = 0):
         losses = []
         accuracies = []
-        for sub_x, sub_y in _random_mini_batch_generator(x, y, batch_size = batch_size):
+        for sub_x, sub_y in random_mini_batch_generator(x, y, batch_size = batch_size):
             if(sub_x.shape[0]==0):
                 continue
             output = self.forward(sub_x)
@@ -68,7 +68,7 @@ class LogisticRegression:
 
             acc = accuracy(sub_y, predictions)
             accuracies.append(acc)
-        
+
         return np.mean(losses), np.mean(accuracies)
 
 
@@ -107,10 +107,10 @@ class LogisticRegression:
         self.weights = self.optimizer.step(self.weights, gradient_w)
 
         self.bias = self.optimizer.step(self.bias, gradient_b, bias = True)
-        
+
 
     def train_model(self, x: np.ndarray, y: np.ndarray, epochs: int = 50, lr:float = 0.01, lamb: float = 0.0, batch_size: int = 16, eval_size:float = 0.25):
-        
+
         # Train, eval set
         X_train, X_eval = x
         y_train, y_eval = y
@@ -130,10 +130,10 @@ class LogisticRegression:
         test_accuracies = []
 
         for epoch in range(epochs):
-            
+
             # Single step
             self.single_step(X_train, y_train, epochs = 1, lr =lr, lamb = lamb, batch_size=batch_size)
-            
+
             train_loss, train_acc = self.validate(X_train, y_train, batch_size,lamb)
             train_losses.append(train_loss)
             train_accuracies.append(train_acc)
@@ -147,7 +147,7 @@ class LogisticRegression:
                 best_loss = test_loss
                 best_acc = test_acc
                 best_model = (self.weights, self.bias)
-        
+
         return best_model, best_loss, best_epoch, best_acc, train_losses, train_accuracies, test_losses, test_accuracies
-        
+
 

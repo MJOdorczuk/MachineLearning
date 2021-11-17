@@ -1,3 +1,4 @@
+import numpy
 from autograd import numpy as np
 from typing import Callable
 from typing import List
@@ -83,7 +84,7 @@ class NeuralNetwork:
 
         self.prev_weights = [l.weights for l in self.layers]
 
-        
+
     def forward(self, x: np.ndarray) -> np.ndarray:
         """Neural network output after feeding to the activation function.
 
@@ -103,10 +104,6 @@ class NeuralNetwork:
             y = layer.forward(y)
         return y
 
-    def reduce_lr(self):
-        for l in self.layers:
-            l.opt.lr /= 2/3
-
     def backward(self, y: np.ndarray, lamb: float = 0) -> None:
         """Back propagation implementation based on the last forward feed and the expected values:
 
@@ -116,7 +113,7 @@ class NeuralNetwork:
             Expected output for last forward feed.
         lamb:
             Regularization factor.
-        """        
+        """
 
         last_layer = self.layers[-1]
 
@@ -159,7 +156,7 @@ class NeuralNetwork:
                 # Regularization
                 if lamb > 0:
                     weights_grad += lamb * self.layers[l].weights
-                
+
                 # Calculate next delta term
                 next_delta = np.matmul(deltas[-1], self.layers[l].weights.T) * self.layers[l-1].d_activation(self.layers[l-1].z)
                 deltas.append(next_delta)
@@ -173,7 +170,3 @@ class NeuralNetwork:
                 weights_grad_output += lamb * self.layers[-1].weights
             bias_grad = np.sum(deltas[-1], axis = 0)
             self.layers[0].update_weight(weights_grad, bias_grad)
-
-            
-        
-        
