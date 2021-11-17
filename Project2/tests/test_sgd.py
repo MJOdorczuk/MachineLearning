@@ -3,9 +3,8 @@ import pytest
 from autograd import grad
 
 from csnet.optim import (
-    momentum_sgd_step,
     random_mini_batch_generator,
-    sgd_step
+    SGD,
 )
 from csnet.utils import FrankeFunction, cost_mse, create_X
 
@@ -26,15 +25,12 @@ def test_sdg_momentum_step(make_data) -> None:
 
     expected_weights_shape = weights.shape
 
-    w, m = momentum_sgd_step(
-        X,
-        z,
+    optim = SGD(0.01, 2, True, True, 0.5, True)
+    gradient = grad(cost_mse)(weights, X, 0, z)
+
+    w = optim.step(
         weights,
-        lr=0.01,
-        alpha=0.5,
-        m=0,
-        grad_cost_function=grad(cost_mse),
-        lamb=None,
+        gradient,
     )
 
     assert w.shape == expected_weights_shape
@@ -45,13 +41,12 @@ def test_sdg_step(make_data) -> None:
 
     expected_weights_shape = weights.shape
 
-    w = sgd_step(
-        X,
-        z,
+    optim = SGD(0.01, 2, True, False, 0.5, True)
+    gradient = grad(cost_mse)(weights, X, 0, z)
+
+    w = optim.step(
         weights,
-        lr=0.01,
-        grad_cost_function=grad(cost_mse),
-        lamb=None,
+        gradient,
     )
 
     assert w.shape == expected_weights_shape

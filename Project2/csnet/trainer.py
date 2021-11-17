@@ -1,6 +1,6 @@
 from itertools import permutations
 import copy
-from typing import Callable
+from typing import Any, Callable
 
 from autograd import numpy as np
 import matplotlib.pyplot as plt
@@ -10,29 +10,28 @@ import torch.nn as nn
 from csnet.NeuralNetwork import Layer, NeuralNetwork
 from csnet.activation import Activation
 from csnet.loss import mean_squared_error
-from csnet.optim import _random_mini_batch_generator, SGD
+from csnet.optim import random_mini_batch_generator, SGD
 
 from sklearn.metrics import r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 
-def tune_neural_network(X: np.ndarray, 
-                        z: np.ndarray, 
-                        epochs:int = 100, 
-                        batch_size:int = 16, 
-                        lamb: float = 0,
-                        learning_rates = [2, 1.5, 1, 0.5],
-                        #learning_rates = np.logspace(-2, -0.5, 6),
-                        measure: Callable = r2_score,
-                        loss_func: Callable = mean_squared_error,
-                        problem_type: str = 'Regression'):
-    
-    # TODO
-    """
-    Add some raise error: Not regression or classifiation
-    """
+def tune_neural_network(
+        X: np.ndarray,
+        z: np.ndarray,
+        epochs:int = 100,
+        batch_size:int = 16,
+        lamb: float = 0,
+        learning_rates=np.logspace(-3, -0.5, 6),
+        lambdas=np.logspace(-3, -0.5, 5),
+        measure: Callable = r2_score,
+        loss_func: Callable = mean_squared_error,
+        problem_type: str = 'Regression',
+) -> dict[str, Any]:
+    """Perform grid search of hyperparameters fo NN.
 
+    """
     X_train, X_eval, X_test = X
     Z_train, Z_eval, Z_test = z
 
@@ -51,7 +50,7 @@ def tune_neural_network(X: np.ndarray,
     global_best_eval_measure = None
 
     activations = Activation()
-    for lamb in np.logspace(-3, -0.5, 4):
+    for lamb in lambdas:
         print(f"New Lambda {lamb}")
         for lr in learning_rates:
             print(f"New Learning rate: {lr}")
@@ -59,7 +58,7 @@ def tune_neural_network(X: np.ndarray,
                 for activation in activations.get_all_activations():
                     all_num_neurons_combinations = permutations([1,2,3,4,5], num_layers)
                     for neuron_combination in all_num_neurons_combinations:
-                        
+
                         # Construct Neural network
                         input_size = X_train.shape[1]
                         layers = []
@@ -74,7 +73,7 @@ def tune_neural_network(X: np.ndarray,
                             layer.weights = np.something_not_gaussian(input_size, neurons_for_a_layer)
                             """
                             layers.append(layer)
-                        
+
                         # Output layer
                         opt = SGD(lr, batch_size, True, True, 0.9)
                         if problem_type == 'Classification':
@@ -83,7 +82,7 @@ def tune_neural_network(X: np.ndarray,
                             layers.append(Layer(activations.identity, input_size, 1, opt))
 
                         network = NeuralNetwork(layers, loss_func)
-                        
+
                         train_losses = []
                         train_measure_score = []
 
@@ -100,7 +99,7 @@ def tune_neural_network(X: np.ndarray,
                             batch_train_losses = []
                             batch_train_measure = []
                             # Training
-                            for sub_x, sub_y in _random_mini_batch_generator(X_train, Z_train, batch_size = batch_size):
+                            for sub_x, sub_y in random_mini_batch_generator(X_train, Z_train, batch_size = batch_size):
                                 # Forward Pass
                                 output = network.forward(sub_x)
                                 # MSE and measure
@@ -112,7 +111,7 @@ def tune_neural_network(X: np.ndarray,
                                 if problem_type == 'Classification':
                                     # Classify
                                     output = (output > 0.5).astype(int)
-                                
+
                                 if problem_type == 'Regression':
                                     if sub_y.shape[0] == 1:
                                         # R2 scores cannot handle batch size of 1.
@@ -126,7 +125,7 @@ def tune_neural_network(X: np.ndarray,
                             batch_eval_losses = []
                             batch_eval_measure = []
 
-                            for sub_x, sub_y in _random_mini_batch_generator(X_eval, Z_eval, batch_size = batch_size):
+                            for sub_x, sub_y in random_mini_batch_generator(X_eval, Z_eval, batch_size = batch_size):
                                 eval_output = network.forward(sub_x)
                                 eval_loss = np.mean(network.cost(sub_y, eval_output))
                                 batch_eval_losses.append(eval_loss)
@@ -154,9 +153,6 @@ def tune_neural_network(X: np.ndarray,
                                 if np.abs(np.mean(eval_losses[5:]) - np.mean(eval_losses[10:])) < 0.0001:
                                     print("Early stopping, no learning", epoch, np.abs(np.mean(eval_losses[5:]) - np.mean(eval_losses[10:])),  np.mean(eval_losses[5:]),  np.mean(eval_losses[10:]))
                                     break
-                                
-                            if epoch % 50 == 49:
-                                network.reduce_lr()
 
                         # Tuning hyperparameters on eval set.
                         if best_measure > global_best_measure:
@@ -173,7 +169,7 @@ def tune_neural_network(X: np.ndarray,
                             global_best_eval_losses = eval_losses
                             global_best_train_measure = train_measure_score
                             global_best_eval_measure = eval_measure_score
-                            
+
                             """
                             plt.plot(global_best_train_losses, label = "Train loss")
                             plt.plot(global_best_eval_losses, label = "Eval loss")
@@ -184,7 +180,7 @@ def tune_neural_network(X: np.ndarray,
                             plt.legend()
                             plt.show()
                             """
-                            
+
                             # TODO Remove this, this is cuz im impatient
                             if best_measure >= 0.95:
                                 returns = {
@@ -202,8 +198,8 @@ def tune_neural_network(X: np.ndarray,
                                 }
 
                                 return returns
-                            
-                            
+
+
                     """
                     plt.plot(global_best_train_losses, label = "Train loss")
                     plt.plot(global_best_eval_losses, label = "Eval loss")
@@ -275,7 +271,7 @@ def train_pytorch_net(custom_model, X, z, lr=0.1, epochs=20, batch_size = 16, la
 
     optimizer = torch.optim.SGD(model.parameters(),lr=lr, momentum=0.9, weight_decay=lamb)
 
-    train_dataset = torch.utils.data.TensorDataset(X_train, z_train) 
+    train_dataset = torch.utils.data.TensorDataset(X_train, z_train)
     eval_dataset = torch.utils.data.TensorDataset(X_eval, z_eval)
     train_loader = torch.utils.data.DataLoader(train_dataset,batch_size=batch_size,shuffle=True) # returns an iterator
     eval_loader =torch.utils.data.DataLoader(eval_dataset,batch_size=batch_size,shuffle=False)
@@ -300,7 +296,7 @@ def train_pytorch_net(custom_model, X, z, lr=0.1, epochs=20, batch_size = 16, la
             pred = model(sub_x)
             loss = cost_func(pred, sub_y)
             optimizer.zero_grad()
-            
+
             loss.backward()
             optimizer.step()
 
@@ -326,11 +322,14 @@ def train_pytorch_net(custom_model, X, z, lr=0.1, epochs=20, batch_size = 16, la
             if custom_model.cost.__name__ == 'binary_cross_entropy':
                 pred = (pred >= 0.5)
             batch_eval_mea.append(
-                measure(sub_y.detach().numpy(), pred.detach().numpy())
+                measure(
+                    sub_y.detach().numpy(),
+                    np.nan_is_num(pred.detach().numpy()),
+                )
             )
         eval_losses.append(np.mean(batch_eval_losses))
         eval_measures.append(np.mean(batch_eval_mea))
-        
+
     # Final test
     model.train(False)
     pred = model(X_test)

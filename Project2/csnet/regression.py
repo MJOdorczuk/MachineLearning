@@ -6,7 +6,7 @@ from typing import Callable, Literal  # noqa: TYP001
 import numpy as np
 from autograd import grad
 
-from csnet.optim import sgd_minibatch
+from csnet.optim import sgd_minibatch, SGD
 from csnet.utils import cost_mse, cost_mse_ridge
 
 
@@ -74,18 +74,23 @@ def sgd_regression(
     all_cost = [prev_cost]
     all_weights = [weights.copy()]
 
+    optim = SGD(
+        lr=lr,
+        batch_size=batch_size,
+        use_momentum=momentum,
+        alpha=alpha,
+        decay=lr / epochs,
+    )
+
     for epoch in range(epochs):
-        weights, m = sgd_minibatch(
+        weights = sgd_minibatch(
             x=x,
             y=y,
             weights=weights,
             batch_size=batch_size,
-            lr=lr_scaling_func(lr),
-            alpha=alpha,
-            m=m,
             grad_cost=grad_cost,
             lamb=lamb,
-            momentum=momentum,
+            optimizer=optim,
         )
 
         cost = cost_function(weights, x, lamb, y)

@@ -119,7 +119,9 @@ def simple_mse_and_r2_by_complexity(
 
     return MSE_pred, r2_pred
 
-def train_and_test_neural_net_regression(X: np.ndarray, Z: np.ndarray, epochs: int = 100, batch_size: int = 16):
+def train_and_test_neural_net_regression(
+        X: np.ndarray, Z: np.ndarray, epochs: int = 100, batch_size: int = 16,
+    ):
 
     X_train, X_eval, X_test = X
     z_train, z_eval, z_test = Z
@@ -227,7 +229,23 @@ def compare_nn_franke():
     lr = best_nn['lr']
 
     # Testing against Pytorch
-    model, train_losses, train_measures, eval_losses, eval_measures, test_losses, test_measure = train_pytorch_net(best_nn['model'], X, Z, best_nn['lr'], num_epochs, batch_size, lamb)
+    (
+        model,
+        train_losses,
+        train_measures,
+        eval_losses,
+        eval_measures,
+        test_losses,
+        test_measure
+    ) = train_pytorch_net(
+        best_nn['model'],
+        X,
+        Z,
+        best_nn['lr'],
+        num_epochs,
+        batch_size,
+        lamb,
+    )
 
     # Plotting losses and R2
     plt.plot(best_nn['train_losses'], label = "Train loss")

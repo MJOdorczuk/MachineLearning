@@ -78,19 +78,6 @@ def test_sgd_regression_momnetum_working(make_data) -> None:
     assert result is not None
     assert result.shape == (6, 1)
 
-    # test alpha to high
-    with pytest.raises(AttributeError):
-        _ = sgd_regression(
-            X,
-            z,
-            lr=0.01,
-            epochs=500,
-            momentum=True,
-            alpha=1.1,
-            cost_function=cost_mse,
-            weights=weights,
-        )
-
 
 def test_sgd_regression_wrong_shape() -> None:
     x = numpy.random.rand(10, 1)
