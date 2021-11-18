@@ -50,9 +50,11 @@ def part_a() -> None:
 
         # fit and calculate mse/r2 for each method
         list_of_methods = ["ols", "ols_sgd", "ridge", "ridge_sgd"]
+
         all_results["mse"][complexity] = {}
         all_results["r2"][complexity] = {}
         results_pr_method[complexity] = {}
+
         for method in list_of_methods:
             results_pr_method[complexity][method] = []
             reg = Regression(method=cast(METHODS, method))
@@ -68,7 +70,7 @@ def part_a() -> None:
                 batchsize=[2, 4, 8],
                 lambdas=np.logspace(-4, -1, 5).tolist(),
                 momentum=True,
-                alpha=np.logspace(-8, 0, 10).tolist()
+                alpha=np.arange(0, 0.9, 9).tolist()
             )
 
             # make a model from best results
@@ -117,7 +119,7 @@ def part_a() -> None:
         ylabel="$MSE$",
     )
     plt.savefig(os.path.join(path, "part_a_mse.pdf"), dpi=150)
-    plt.show()
+    # plt.show()
     df_r2.plot(
         figsize=(16, 9),
         xlabel="Complexity",
@@ -125,12 +127,10 @@ def part_a() -> None:
         ylim=(-0.1, 1.0)
     )
     plt.savefig(os.path.join(path, "part_a_r2.pdf"), dpi=150)
-    plt.show()
+    # plt.show()
 
     for c, dct in results_pr_method.items():
         results = dct["ridge_sgd"]
-        lrs = {[res.lr for res in results].sort()}
-        lambs = {[res.lamb for res in results].sort()}
         heatmap = pandas.DataFrame()
 
         for res in results:
