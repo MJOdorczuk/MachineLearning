@@ -267,6 +267,33 @@ def compare_nn_franke():
     plt.savefig("figures/task_2_r2.pdf", dpi=100)
     plt.show()
 
+    # Plot a 3d plot of predictions on best model
+    model = best_nn['model']
+    fig, ax = plt.subplots(1, subplot_kw={"projection": "3d"})
+
+    # Create coordinates to use in prediction
+    x_plot = np.arange(0, 1, 0.01)
+    y_plot = np.arange(0, 1, 0.01)
+    X_plot, Y_plot = np.meshgrid(x_plot, y_plot)
+
+    # Create input from X and Y corresponding to expected input
+    data = np.column_stack([X_plot.ravel(), Y_plot.ravel()])
+    # data -= np.mean(data)
+    # Predict z values
+    z_plot = model.forward(data)
+
+    # rearrange `z` to have a shape corresponding to `X` and `Y`
+    pred_2d = z_plot.reshape(X_plot.shape[0], Y_plot.shape[1])
+
+    ax.set_title("Predictions neural network")
+    surf = ax.plot_surface(
+        X_plot, Y_plot, pred_2d, cmap=plt.cm.coolwarm, linewidth=0, antialiased=False
+    )
+    ax.scatter(X_train[:, 0], X_train[:, 1], z_train, marker="o")
+
+    plt.savefig("figures/NN_surface_plot.pdf", dpi=150)
+    plt.show()
+
 
 if __name__ == '__main__':
     compare_nn_franke()
