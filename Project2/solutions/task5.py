@@ -5,6 +5,7 @@ from csnet.data import load_breast_cancer_data
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression as SKlogreg
 from sklearn.preprocessing import StandardScaler, MinMaxScaler 
+from sklearn.metrics import confusion_matrix
 
 
 
@@ -123,8 +124,9 @@ def log_reg_sklearn(x,y):
     X_train = scaler.transform(X_train)
     X_test = scaler.transform(X_test)
     clf = SKlogreg().fit(X_train, y_train)
-    clf.predict(X_test)
+    pred = clf.predict(X_test)
     final_acc = clf.score(X_test, y_test)
+    print(confusion_matrix(y_test, pred))
     print("SKlearn log reg final acc:",final_acc)
 
 
