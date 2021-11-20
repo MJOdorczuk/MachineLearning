@@ -25,7 +25,7 @@ def test_sdg_momentum_step(make_data) -> None:
 
     expected_weights_shape = weights.shape
 
-    optim = SGD(0.01, 2, True, True, 0.5, True)
+    optim = SGD(0.01, True, True, 0.5, True)
     gradient = grad(cost_mse)(weights, X, 0, z)
 
     w = optim.step(
@@ -41,7 +41,7 @@ def test_sdg_step(make_data) -> None:
 
     expected_weights_shape = weights.shape
 
-    optim = SGD(0.01, 2, True, False, 0.5, True)
+    optim = SGD(0.01, True, False, 0.5, True)
     gradient = grad(cost_mse)(weights, X, 0, z)
 
     w = optim.step(
