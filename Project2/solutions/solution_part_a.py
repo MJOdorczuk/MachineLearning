@@ -19,13 +19,21 @@ from csnet.utils import FrankeFunction, create_X, regression_grid_search
 
 matplotlib.use("tkagg")
 
-numpy.random.seed(3190)
+numpy.random.seed(41)
 
-sns.set(font_scale=2)
+sns.set(font_scale=2.5)
 
 def part_a() -> None:
     """Part a) compare regression with use of SGD to `pinv`."""
-    noise = 0.01
+    # path for saving figures
+    path = os.path.join(os.path.dirname(__file__), "figures")
+    try:
+        os.mkdir(path=path)
+    except FileExistsError:
+        pass
+
+    EPOCHS = 100
+    noise = 0.00
     num_points = 100
     x = (numpy.random.uniform(0, 1, num_points))
     y = (numpy.random.uniform(0, 1, num_points))
@@ -42,7 +50,8 @@ def part_a() -> None:
         X = create_X(x, y, n=complexity)
         # Split and scale data
         X_train, X_test, z_train, z_test = train_test_split(
-            X, z, test_size=0.2,)
+            X, z, test_size=0.2, random_state=41,
+        )
         X_train = X_train - np.mean(X_train)
         X_test = X_test - np.mean(X_test)
         z_train = z_train - np.mean(z_train)
@@ -65,12 +74,13 @@ def part_a() -> None:
                 reg,
                 X_train,
                 z_train,
-                n_epochs=30,
-                lrs=np.logspace(-5, -1, 5).tolist(),
-                batchsize=[2, 4, 8],
-                lambdas=np.logspace(-4, -1, 5).tolist(),
+                n_epochs=EPOCHS,
+                lrs=[0.01, 0.1, 0.25, 0.5, 0.75],
+                batchsize=[1, 2, 4],
+                # lambdas=[0.001, 0.01, 0.1, 0.5, 0.9],
+                lambdas=np.logspace(-3, 1, 5).tolist(),
                 momentum=True,
-                alpha=np.arange(0, 0.9, 9).tolist()
+                alpha=np.arange(0.1, 0.9, 0.4).tolist(),
             )
 
             # make a model from best results
@@ -80,7 +90,7 @@ def part_a() -> None:
                 X_train,
                 z_train,
                 lamb=best.lamb,
-                n_epochs=100,
+                n_epochs=150,
                 display=False,
                 batch_size=best.batchsize,
                 momentum=best.momentum,
@@ -91,8 +101,28 @@ def part_a() -> None:
             mse = mean_squared_error(z_test, z_pred)
             r2 = r2_score(z_test, z_pred)
             print(f"---- Results from {method} on testdata - MSE={mse} , R2={r2}")
-            # Print top 3 results
-            # print(json.dumps(results[0:3], indent=4))
+            print(f"------ Best val result: {best}")
+
+            if method in ["ols_sgd", "ridge_sgd"]:
+                fig, ax = plt.subplots(1, figsize=(16, 9))
+                ax.set_title(
+                    f"Training loss {method}, complexity {complexity}",
+                )
+                ax.set_ylabel("MSE")
+                ax.set_xlabel("Epochs")
+                ax.plot(
+                    range(len(best.all_mse)),
+                    best.all_mse,
+                    label="Training loss",
+                )
+                plt.legend()
+                plt.savefig(
+                    os.path.join(
+                        path, f"part_a_train_loss_{method}_c{complexity}.pdf"
+                    ),
+                    dpi=100,
+                )
+                plt.close()
 
             # Save results for plotting later
             all_results["mse"][complexity][method] = mse
@@ -100,14 +130,7 @@ def part_a() -> None:
             results_pr_method[complexity][method] = results
 
     # Display data
-    # import json
-    # print(json.dumps(all_results, indent=4))
-    # Generate plots and tables?
-    path = os.path.join(os.path.dirname(__file__), "figures")
-    try:
-        os.mkdir(path=path)
-    except FileExistsError:
-        pass
+    print(f"Saving figures at {path}")
 
     df_mse = pandas.DataFrame(all_results["mse"]).T
     df_r2 = pandas.DataFrame(all_results["r2"]).T
@@ -132,21 +155,47 @@ def part_a() -> None:
     for c, dct in results_pr_method.items():
         results = dct["ridge_sgd"]
         heatmap = pandas.DataFrame()
+        heatmap_r2 = pandas.DataFrame()
 
         for res in results:
-            heatmap.at[res.lr, res.lamb] = res.mse
+            heatmap.at[res.lr, res.lamb] = res.val_mse
+            heatmap_r2.at[res.lr, res.lamb] = res.val_r2
 
         heatmap = heatmap.dropna()
+        heatmap_r2 = heatmap_r2.dropna()
         print(heatmap)
+        print(heatmap_r2)
 
-        fig, ax = plt.subplots(figsize=(16, 9))
-        fig.suptitle(f"Complexity {c}")
-        ax = sns.heatmap(heatmap)
-        ax.set_ylabel("$\eta$")
-        ax.set_xlabel("$\lambda$")
-        plt.legend()
-        plt.savefig(os.path.join(path, f"heatmap_ridge_comp_{c}.pdf"), dpi=150)
-        plt.show()
+        fig, ax = plt.subplots(2, figsize=(16, 20))
+        # fig.suptitle(f"Complexity {c}")
+        ax[0] = sns.heatmap(
+            heatmap,
+            ax=ax[0],
+            square=False,
+            xticklabels=True,
+            yticklabels=True,
+        )
+        ax[0].set_title("MSE", pad=10)
+        ax[0].set_ylabel("$\eta$", rotation=0, labelpad=35)
+        ax[0].set_xlabel("$\lambda$", labelpad=5)
+        ax[1] = sns.heatmap(
+            heatmap_r2,
+            ax=ax[1],
+            square=False,
+            xticklabels=True,
+            yticklabels=True,
+        )
+        ax[1].set_title("$R^2$", pad=10)
+        ax[1].set_ylabel("$\eta$", rotation=0, labelpad=35)
+        ax[1].set_xlabel("$\lambda$", labelpad=40)
+        fig.tight_layout(pad=60)
+        plt.yticks(rotation=0, fontsize=28)
+        plt.xticks(rotation=0, fontsize=28)
+        plt.savefig(
+            os.path.join(path, f"part_a_heatmap_ridge_comp_{c}.pdf"),
+            dpi=100,
+        )
+        # plt.show()
         plt.close()
 
 

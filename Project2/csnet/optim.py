@@ -17,7 +17,6 @@ class SGD():
     """
     def __init__(self,
             lr: float = 0.01,
-            batch_size: int = 16,
             silent: bool = True,
             use_momentum: bool = False,
             alpha: float = 0.9,
@@ -26,7 +25,6 @@ class SGD():
         ) -> None:
 
         self.lr = lr
-        self.batch_size = batch_size
         self.silent = silent
         self.use_momentum = use_momentum
         self.alpha = alpha
@@ -41,7 +39,14 @@ class SGD():
         if self.use_lr_decay is False:
             return self.lr
 
-        return self.lr * (1.0 / (1 + self.decay * self.steps_done))
+        self.lr = self.lr * (1.0 / (1 + self.decay * self.steps_done))
+
+        if self.lr < 0:
+            print(
+                f"Learning rate decayed to zero. lr: {self.lr}, "
+                f"decay: {self.decay}, sets_done: {self.steps_done}"
+            )
+        return self.lr
 
     def step(
         self,

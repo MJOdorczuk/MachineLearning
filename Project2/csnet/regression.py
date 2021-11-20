@@ -4,11 +4,12 @@ from __future__ import annotations
 from typing import Callable, Literal  # noqa: TYP001
 
 import numpy as np
+import matplotlib.pyplot as plt
 from autograd import grad
+from sklearn.metrics import r2_score
 
 from csnet.optim import sgd_minibatch, SGD
 from csnet.utils import cost_mse, cost_mse_ridge
-
 
 def sgd_regression(
     x: np.ndarray,
@@ -23,7 +24,6 @@ def sgd_regression(
     momentum: bool = False,
     alpha: float = 0.5,
     tol: float = 1e-8,
-    lr_scaling_func: Callable[[float], float] | None = None,
 ) -> tuple[np.ndarray, list[float]]:
     """Stochastic gradient descent implementation for optimize `beta`
     in regression.
@@ -58,28 +58,20 @@ def sgd_regression(
             f"Wrong shape of x and y. Shape {x.shape=} != {y.shape=}"
         )
 
-    if lr_scaling_func is None:
-        lr_scaling_func = lambda lr: lr
-
-    # To store momentum between epochs if SGD with momentum is used.
-    m: np.ndarray | None = None
-
     # Derivitive of cost function
     grad_cost = grad(cost_function, 0)
 
     # Variables to store results
     best_cost = None
     best_weights = None
-    prev_cost = cost_function(weights, x, lamb, y)
-    all_cost = [prev_cost]
+    all_cost = [cost_function(weights, x, lamb, y)]
     all_weights = [weights.copy()]
 
     optim = SGD(
         lr=lr,
-        batch_size=batch_size,
         use_momentum=momentum,
         alpha=alpha,
-        decay=lr / epochs,
+        decay=lr / (epochs * (len(x) / batch_size)),
     )
 
     for epoch in range(epochs):
@@ -95,17 +87,17 @@ def sgd_regression(
 
         cost = cost_function(weights, x, lamb, y)
 
+        all_cost.append(cost)
+        all_weights.append(weights.copy())
+
         if best_cost is None or best_weights is None or cost < best_cost:
             best_cost = cost
             best_weights = weights.copy()
 
         # early stop if diff in cost is less the `tol`
-        if np.abs(prev_cost - cost) <= tol:
-             break
-
-        all_cost.append(cost)
-        prev_cost = cost
-        all_weights.append(weights.copy())
+        if epoch > 11 and np.abs(np.mean(all_cost[-10]) - cost) <= tol:
+            # print(f"early stop, epoch: {epoch}")
+            break
 
     assert best_weights is not None
     return best_weights, all_cost
@@ -271,7 +263,9 @@ class Regression:
     ) -> None:
         """Perform a fit of the model with given parameters."""
         if reset_parameters or self.parameters is None:
-            self.parameters = np.random.randn(x.shape[1], 1)
+            self.parameters = np.random.normal(
+                0, np.sqrt(2 / x.shape[1]), size=(x.shape[1], 1),
+            )
 
         if lamb is None and self.func.__name__ in ["ridge", "ridge_sgd"]:
             raise AttributeError
@@ -291,6 +285,10 @@ class Regression:
             momentum=momentum,
             alpha=alpha,
         )
+
+        if display and self.func.__name__ in ["ols_sgd", "ridge_sgd"]:
+            plt.plot(self._all_mse)
+            plt.show()
 
     def predict(self, x: np.ndarray) -> np.ndarray:
         """Make a prediction on the fitted model."""

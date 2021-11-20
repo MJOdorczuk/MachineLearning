@@ -58,15 +58,28 @@ def tune_neural_network(
             print(f"New Learning rate: {lr}")
             for num_layers in range(1, 4):
                 for activation in activations.get_all_activations():
-                    all_num_neurons_combinations = permutations([1,2,3,4,5], num_layers)
+                    all_num_neurons_combinations = permutations(
+                        [1, 2, 3, 4, 5], num_layers,
+                    )
                     for neuron_combination in all_num_neurons_combinations:
 
                         # Construct Neural network
                         input_size = X_train.shape[1]
                         layers = []
                         for neurons_for_a_layer in neuron_combination:
-                            opt = SGD(lr, batch_size, True, True, 0.9)
-                            layer = Layer(activation, input_size, neurons_for_a_layer,opt)
+                            opt = SGD(
+                                lr=lr,
+                                use_momentum=True,
+                                alpha=0.9,
+                                use_lr_decay=True,
+                                decay=lr / (epochs * (input_size / batch_size) + 2),
+                            )
+                            layer = Layer(
+                                activ=activation,
+                                input_size=input_size,
+                                output_size=neurons_for_a_layer,
+                                opt=opt,
+                            )
                             input_size = neurons_for_a_layer
                             """
                             # TODO
@@ -77,7 +90,13 @@ def tune_neural_network(
                             layers.append(layer)
 
                         # Output layer
-                        opt = SGD(lr, batch_size, True, True, 0.9)
+                        opt = SGD(
+                            lr=lr,
+                            use_momentum=True,
+                            alpha=0.9,
+                            use_lr_decay=True,
+                            decay=lr / (epochs * (input_size / batch_size)),
+                        )
                         if problem_type == 'Classification':
                             layers.append(Layer(activations.sigmoid, input_size, 1, opt))
                         else:
@@ -96,8 +115,6 @@ def tune_neural_network(
                         best_measure = -np.inf
                         prev_weights = network.layers[-1].weights
                         for epoch in range(epochs):
-                            #print(f"{epoch}---------------")
-                            #print(prev_weights - network.layers[-1].weights,end="\r")
                             batch_train_losses = []
                             batch_train_measure = []
                             # Training
