@@ -3,6 +3,10 @@ from csnet.loss import binary_cross_entropy
 from csnet.optim import SGD
 from csnet.data import load_breast_cancer_data
 from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression as SKlogreg
+from sklearn.preprocessing import StandardScaler, MinMaxScaler 
+
+
 
 import pandas as pd
 import numpy as np
@@ -25,7 +29,7 @@ def tune_log_reg(x: np.ndarray, y:np.ndarray, epochs:int=100, batch_size:int = 1
     global_best_train_acc = None
     global_best_test_acc = None
 
-    X_train, X_eval, y_train, y_eval = train_test_split(x, y, test_size=0.2)
+    X_train, X_eval, y_train, y_eval = train_test_split(x, y, test_size=0.25)
 
     X = [X_train, X_eval]
     Y = [y_train, y_eval]
@@ -109,6 +113,21 @@ def plot_lr_lamb_heatmap(losses, accuracies):
     plt.savefig("figures/logreg_acc_heatmap.pdf", dpi=150)
     plt.show()
 
+def log_reg_sklearn(x,y):
+    """
+    SK-learn, without splitting our training data into eval and training, as SKlearn takes all the trianing data
+    """
+    X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+    scaler= StandardScaler()
+    scaler.fit(X_train)
+    X_train = scaler.transform(X_train)
+    X_test = scaler.transform(X_test)
+    clf = SKlogreg().fit(X_train, y_train)
+    clf.predict(X_test)
+    final_acc = clf.score(X_test, y_test)
+    print("SKlearn log reg final acc:",final_acc)
+
+
 
 def train_and_test_log_reg(x: np.ndarray, y: np.ndarray, epochs:int=100, batch_size:int = 16, lamb: float = 0):
     """
@@ -150,4 +169,5 @@ if __name__ == "__main__":
 
     train_and_test_log_reg(x,y)
 
+    log_reg_sklearn(x,y)
 
