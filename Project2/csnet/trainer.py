@@ -34,6 +34,11 @@ def tune_neural_network(
     """Perform grid search of hyperparameters fo NN.
 
     """
+    if problem_type == 'Regression':
+        use_lr_decay = True
+    else: #Classification
+        use_lr_decay = False
+
     X_train, X_eval, X_test = X
     Z_train, Z_eval, Z_test = z
 
@@ -71,7 +76,7 @@ def tune_neural_network(
                                 lr=lr,
                                 use_momentum=True,
                                 alpha=0.9,
-                                use_lr_decay=True,
+                                use_lr_decay=use_lr_decay,
                                 decay=lr / (epochs * (input_size / batch_size) + 2),
                             )
                             layer = Layer(
@@ -94,7 +99,7 @@ def tune_neural_network(
                             lr=lr,
                             use_momentum=True,
                             alpha=0.9,
-                            use_lr_decay=True,
+                            use_lr_decay=use_lr_decay,
                             decay=lr / (epochs * (input_size / batch_size)),
                         )
                         if problem_type == 'Classification':
