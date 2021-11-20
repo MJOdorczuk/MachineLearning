@@ -156,60 +156,21 @@ def tune_neural_network(
 
                         # Tuning hyperparameters on eval set.
                         if best_measure > global_best_measure:
-                            print(f"New best {measure.__name__}: {best_measure}, {loss_func.__name__}: {best_loss}, learning rate: {lr}, lamb: {lamb} with {neuron_combination} and activation {activation.__name__}")
-                            global_best_model = best_model
-                            global_best_loss = best_loss
-                            global_best_measure = best_measure
-                            global_best_lr = lr
-                            global_best_lamb = lamb
-                            global_best_neuron_combo = neuron_combination
-                            global_best_activation = activation
+                            if best_loss < global_best_loss:
+                                print(f"New best {measure.__name__}: {best_measure}, {loss_func.__name__}: {best_loss}, learning rate: {lr}, lamb: {lamb} with {neuron_combination} and activation {activation.__name__}")
+                                global_best_model = best_model
+                                global_best_loss = best_loss
+                                global_best_measure = best_measure
+                                global_best_lr = lr
+                                global_best_lamb = lamb
+                                global_best_neuron_combo = neuron_combination
+                                global_best_activation = activation
 
-                            global_best_train_losses = train_losses
-                            global_best_eval_losses = eval_losses
-                            global_best_train_measure = train_measure_score
-                            global_best_eval_measure = eval_measure_score
+                                global_best_train_losses = train_losses
+                                global_best_eval_losses = eval_losses
+                                global_best_train_measure = train_measure_score
+                                global_best_eval_measure = eval_measure_score
 
-                            """
-                            plt.plot(global_best_train_losses, label = "Train loss")
-                            plt.plot(global_best_eval_losses, label = "Eval loss")
-                            plt.legend()
-                            plt.show()
-                            plt.plot(global_best_train_measure, label = "Train Acc")
-                            plt.plot(global_best_eval_measure, label = "Eval Acc")
-                            plt.legend()
-                            plt.show()
-                            """
-
-                            # TODO Remove this, this is cuz im impatient
-                            if best_measure >= 0.95:
-                                returns = {
-                                    'best_Loss': global_best_loss,
-                                    'best_'+str(measure.__name__): global_best_measure,
-                                    'model': global_best_model,
-                                    'activation': global_best_activation,
-                                    'lr': global_best_lr,
-                                    'lamb': global_best_lamb,
-                                    'layer_neurons': global_best_neuron_combo,
-                                    'train_losses': global_best_train_losses,
-                                    'eval_losses': global_best_eval_losses,
-                                    'train_measure': global_best_train_measure,
-                                    'eval_measure': global_best_eval_measure
-                                }
-
-                                return returns
-
-
-                    """
-                    plt.plot(global_best_train_losses, label = "Train loss")
-                    plt.plot(global_best_eval_losses, label = "Eval loss")
-                    plt.legend()
-                    plt.show()
-                    plt.plot(global_best_train_measure, label = "Train Acc")
-                    plt.plot(global_best_eval_measure, label = "Eval Acc")
-                    plt.legend()
-                    plt.show()
-                    """
 
     returns = {
         'best_Loss': global_best_loss,
@@ -230,7 +191,7 @@ def tune_neural_network(
 
 def train_pytorch_net(custom_model, X, z, lr=0.1, epochs=20, batch_size = 16, lamb = 0, measure = r2_score):
     """Make a simple pytorch network to compare with."""
-
+    print(measure)
     X_train, X_eval, X_test = X
     z_train, z_eval, z_test = z
 
@@ -302,8 +263,7 @@ def train_pytorch_net(custom_model, X, z, lr=0.1, epochs=20, batch_size = 16, la
 
             batch_train_losses.append(loss.detach().numpy().copy())
             if custom_model.cost.__name__ == 'binary_cross_entropy':
-                pred = (pred >= 0.5)
-
+                pred = (pred > 0.5)
             batch_train_mea.append(
                 measure(sub_y.detach().numpy(), pred.detach().numpy())
             )

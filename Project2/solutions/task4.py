@@ -44,7 +44,7 @@ def train_and_test_neural_net_classification(X: np.ndarray, Y: np.ndarray, epoch
 
     print(f"Neural network final test on best model: BCE: {test_loss}, Accuracy: {test_acc}")
 
-    model, train_losses, train_measures, eval_losses, eval_measures, test_losses, test_measure = train_pytorch_net(best_model, X, y, returns['lr'], epochs, batch_size)
+    model, train_losses, train_measures, eval_losses, eval_measures, test_losses, test_measure = train_pytorch_net(best_model, X, y, returns['lr'], epochs, batch_size, measure = accuracy)
     print(f"Torch Neural network final test on best model: BCE: {test_losses}, Accuracy: {test_measure}")
 
     # Plotting losses and R2

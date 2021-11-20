@@ -75,6 +75,7 @@ def train_and_test_neural_net_regression(X: np.ndarray, Z: np.ndarray, epochs: i
     plt.plot(returns['eval_measure'], label = "Eval R2")
     plt.plot(train_measures, label = "Torch Train R2")
     plt.plot(eval_measures, label = "Torch Eval R2")
+    plt.ylim(-1,1)
     plt.xlabel("Epochs")
     plt.ylabel("$R^2$")
     plt.legend()
@@ -82,7 +83,8 @@ def train_and_test_neural_net_regression(X: np.ndarray, Z: np.ndarray, epochs: i
     plt.show()
 
     fig, ax = plt.subplots(1, subplot_kw={"projection": "3d"})
-    X_test_sorted = np.sort(X_test, axis=0)
+    #X_test_sorted = np.sort(X_test, axis=0)
+    X_test_sorted = np.arange(-0.5, 0.5, 0.01/2).reshape(100,2)
     X_plot, Y_plot = np.meshgrid(X_test_sorted[:,0], X_test_sorted[:,1])
 
     # Create input from X and Y corresponding to expected input
@@ -100,7 +102,12 @@ def train_and_test_neural_net_regression(X: np.ndarray, Z: np.ndarray, epochs: i
     )
     ax.scatter(X_test[:, 0], X_test[:, 1], z_test, marker="o")
 
-    plt.savefig("figures/NN_surface_plot.pdf", dpi=150)
+    ax.set_xlabel('$X$')
+    ax.set_ylabel('$Y$')
+    ax.set_zlabel('$Z$')
+    ax.view_init(elev=20, azim=60)
+
+    plt.savefig("figures/NN_surface_plot_final.pdf", dpi=150)
     plt.show()
 
 
